@@ -40,7 +40,7 @@ contract BlsVerifier  {
         Fp2 Y;
     }
 
-    constructor() public {
+    constructor() public payable {
     }
 
     // NOTE: function exposed for testing...
@@ -344,6 +344,9 @@ contract BlsVerifier  {
         Fp memory publicKeyYCoordinate,
         Fp2 memory signatureYCoordinate
     ) public view returns (bool) {
+        require(encodedPublicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
+        require(encodedSignature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
+
         G1Point memory publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
         G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate);
         G2Point memory messageOnCurve = hashToCurve(message);
@@ -351,26 +354,24 @@ contract BlsVerifier  {
         return blsPairingCheck(publicKey, messageOnCurve, signature);
     }
 
-    function verify(
-        bytes calldata publicKey,
-        bytes calldata signature,
-        bytes32 message,
-        Fp calldata publicKeyYCoordinate,
-        Fp2 calldata signatureYCoordinate
-    ) external payable {
-        require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
-        require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
-
-        require(
-            blsSignatureIsValid(
-                message,
-                publicKey,
-                signature,
-                publicKeyYCoordinate,
-                signatureYCoordinate
-            ),
-            "BLS signature verification failed"
-        );
-
-    }
+    /* function verify( */
+    /*     bytes calldata publicKey, */
+    /*     bytes calldata signature, */
+    /*     bytes32 message, */
+    /*     Fp calldata publicKeyYCoordinate, */
+    /*     Fp2 calldata signatureYCoordinate */
+    /* ) external payable { */
+    /**/
+    /*     require( */
+    /*         blsSignatureIsValid( */
+    /*             message, */
+    /*             publicKey, */
+    /*             signature, */
+    /*             publicKeyYCoordinate, */
+    /*             signatureYCoordinate */
+    /*         ), */
+    /*         "BLS signature verification failed" */
+    /*     ); */
+    /**/
+    /* } */
 }
