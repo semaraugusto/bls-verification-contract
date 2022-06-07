@@ -1,12 +1,11 @@
 {
-  "name": "bls-verification-contract",
+  "name": "hardhat-project",
   "version": "1.0.0",
   "description": "Harmony bls-verification smart contract",
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test"
   },
-  "name": "hardhat-project",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.0.4",
@@ -38,5 +37,9 @@
     "ts-node": "^10.8.1",
     "typechain": "^5.2.0",
     "typescript": "^4.7.3"
+  },
+  "dependencies": {
+    "@chainsafe/bls": "^7.1.1",
+    "@chainsafe/blst": "^0.2.4"
   }
 }
