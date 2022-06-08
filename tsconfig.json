@@ -3,10 +3,14 @@
     "target": "es2018",
     "module": "commonjs",
     "strict": true,
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "outDir": "dist",
+    "types": ["node"],
+    "lib": ["es2015", "esnext.asynciterable"],
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "outDir": "./build",
     "declaration": true
   },
-  "include": ["./scripts", "./test", "./typechain"],
+  "include": ["./scripts", "./ts", "./types", "./test", "./typechain"],
   "files": ["./hardhat.config.ts"]
 }
