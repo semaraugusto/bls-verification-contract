@@ -29,6 +29,21 @@ library BLSOpen {
         // );
         // return callSuccess && verified;
     }
+    function Test1(
+        uint256[2] memory signature
+    ) external view returns (bool) {
+        return true;
+    }
+    function Test2(
+        uint256[4][] memory pubkeys
+    ) external view returns (bool) {
+        return true;
+    }
+    function Test3(
+        uint256[2][] memory messages
+    ) external view returns (bool) {
+        return true;
+    }
 
     function verifyMultiple(
         uint256[2] memory signature,
