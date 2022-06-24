@@ -526,17 +526,21 @@ def test_lmul_0(proxy_contract, fplib_contract, signing_root):
     actual_repr = proxy_contract.functions.lmul(v_repr, v_repr).call()
     # _, a, b = actual_repr
     expected = v*v
-    print(f"actual: {actual_repr}")
+    print(f"actual_repr: {actual_repr}")
     actual = FQ2([FQ(utils.convert_fp_to_int(repr)) for repr in actual_repr])
     print(f"actual: {actual}")
     # print(f"actual: {actual}")
     print(f"expected: {expected}")
-    # print(f"expected_repr: {utils.convert_huge_int_to_fp_repr(expected)}")
+    # expected_repr = utils.convert_fp2_to_int(expected)
+    # print(f"expected_repr: {expected_repr}")
+    print(f"expected_repr: {expected.coeffs = }")
+    expected_repr = [utils.convert_int_to_fp_repr(repr) for repr in expected.coeffs]
     # # print(f"actual: {utils.convert_huge_fp_to_int(actual_repr)}")
+    print(f"{expected_repr = }")
 
     assert expected == actual
 
-@pytest.mark.skip(reason="no way of currently testing this")
+# @pytest.mark.skip(reason="no way of currently testing this")
 def test_ladd_G2_1(proxy_contract, signing_root):
     FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
     FIELD_MODULUS = FQ(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab)

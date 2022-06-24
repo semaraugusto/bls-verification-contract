@@ -153,42 +153,6 @@ contract DepositVerifier  {
         );
     }
 
-    function mapToCurveNoPrecompile(Fp2 memory fieldElement) public view returns (G2Point memory result) {
-        uint[4] memory input;
-        input[0] = fieldElement.a.a;
-        input[1] = fieldElement.a.b;
-        input[2] = fieldElement.b.a;
-        input[3] = fieldElement.b.b;
-
-        uint[8] memory output;
-
-        bool success;
-        assembly {
-            success := staticcall(
-                sub(gas(), 2000),
-                0x12,
-                input,
-                128,
-                output,
-                256
-            )
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid() }
-        }
-        require(success, "call to map to curve precompile failed");
-
-        return G2Point(
-            Fp2(
-                FpLib.Fp(output[0], output[1]),
-                FpLib.Fp(output[2], output[3])
-            ),
-            Fp2(
-                FpLib.Fp(output[4], output[5]),
-                FpLib.Fp(output[6], output[7])
-            )
-        );
-    }
-
     function mapToCurve(Fp2 memory fieldElement) public view returns (G2Point memory result) {
         uint[4] memory input;
         input[0] = fieldElement.a.a;
@@ -224,7 +188,6 @@ contract DepositVerifier  {
             )
         );
     }
-
     function G2_isZeroNoPrecompile(Fp2 memory x, Fp2 memory y) public pure returns (bool) {
         return((x.a.a | x.a.b | x.b.a | x.b.b | y.a.a | y.a.b | y.b.a | y.b.b) == 0);
     }
@@ -249,12 +212,37 @@ contract DepositVerifier  {
         if (leq(y, ONE)) {
             return x;
         }
-        FpLib.Fp memory r1 = FpLib.lmul(x.a, y.a); 
-        FpLib.Fp memory r0 = FpLib.lmul(x.b, y.b); 
+        // (a+bi)(c+di) = (ac−bd) + (ad+bc)i
+        FpLib.Fp memory t1 = FpLib.lmul(x.a, y.a); 
+        FpLib.Fp memory t0 = FpLib.lmul(x.b, y.b); 
+        /* t1.subtract(t2),  */
+        FpLib.Fp memory r1 = FpLib.lsub(t1, t0); 
+        FpLib.Fp memory t1_plus_t0 = FpLib.ladd(t1, t0); 
+        FpLib.Fp memory yb_plus_ya = FpLib.ladd(y.a, y.b); 
+        FpLib.Fp memory xb_plus_xa = FpLib.ladd(x.a, x.b); 
+        FpLib.Fp memory xy_mul = FpLib.lmul(xb_plus_xa, yb_plus_ya); 
+        FpLib.Fp memory r0 = FpLib.lsub(xy_mul, t1_plus_t0); 
+        
+
+        /* FpLib.Fp memory r0 = FpLib.lmul(x.b, y.b);  */
         return Fp2(r1, r0);
+// (T1 - T2) + (y. + c1) * (r0 + r1) - (T1 + T2))*i
+        /* return Fp2( */
+        /* t1.subtract(t2),  */
+        /* r0 = y.b */
+        /* r1 = y.a */
+        /* c0.add(c1).multiply(r0.add(r1)).subtract(t1.add(t2)) */
     }
     function lmul(Fp2 memory x, uint scalar) public view returns (Fp2 memory) {
         FpLib.Fp memory scalar_point = FpLib.Fp(0, scalar);
+        /* FpLib.Fp memory r1; */
+        /* FpLib.Fp memory r0; */
+        if(scalar == 0) {
+            // TODO: Fix this. Probably a bug, but dont know what to put instead
+            return ONE;
+        }
+
+
         FpLib.Fp memory r1 = FpLib.lmul(x.a, scalar_point); 
         FpLib.Fp memory r0 = FpLib.lmul(x.b, scalar_point); 
         return Fp2(r1, r0);
@@ -289,23 +277,23 @@ contract DepositVerifier  {
         /* return(x.a == y.a && x.b == y.b); */
     }
     // TODO: Need to test this explicitly
-    function doubleG2(G2Point memory a) public view returns (G2PointTmp memory) {
-            Fp2 memory W = lmul(lmul(a.X, a.X), 3);
-            Fp2 memory S = lmul(a.Y, ONE);
-            Fp2 memory B = lmul(lmul(a.X, a.Y), S); 
-            Fp2 memory H = lsub(lmul(W, W), lmul(B, 8)); 
-            Fp2 memory S_sqr = lsquare(S); 
-            
-            Fp2 memory X = lmul(lmul(H, S), 2);
-            Fp2 memory Y_part1 = lmul(W, lsub(lmul(B, 4), H));
-            Fp2 memory Y_part2 = lmul(lmul(lsquare(a.Y), S_sqr), 8);
-            Fp2 memory Y = lsub(Y_part1, Y_part2);
-            Fp2 memory Z = lmul(lmul(S, S_sqr), 8);
-            X = ldiv(X, Z);
-            Y = ldiv(Y, Z);
-            return G2PointTmp(X, Y, Z);
-
-    }
+    /* function doubleG2(G2Point memory a) public view returns (G2PointTmp memory) { */
+    /*         Fp2 memory W = lmul(lmul(a.X, a.X), 3); */
+    /*         Fp2 memory S = lmul(a.Y, ONE); */
+    /*         Fp2 memory B = lmul(lmul(a.X, a.Y), S);  */
+    /*         Fp2 memory H = lsub(lmul(W, W), lmul(B, 8));  */
+    /*         Fp2 memory S_sqr = lsquare(S);  */
+    /*          */
+    /*         Fp2 memory X = lmul(lmul(H, S), 2); */
+    /*         Fp2 memory Y_part1 = lmul(W, lsub(lmul(B, 4), H)); */
+    /*         Fp2 memory Y_part2 = lmul(lmul(lsquare(a.Y), S_sqr), 8); */
+    /*         Fp2 memory Y = lsub(Y_part1, Y_part2); */
+    /*         Fp2 memory Z = lmul(lmul(S, S_sqr), 8); */
+    /*         X = ldiv(X, Z); */
+    /*         Y = ldiv(Y, Z); */
+    /*         return G2PointTmp(X, Y, Z); */
+    /**/
+    /* } */
 
     function addG2NoPrecompile(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) {
         if(G2_isZeroNoPrecompile(a.X, a.Y)) { 
@@ -328,7 +316,9 @@ contract DepositVerifier  {
             Fp2 memory V1 = lmul(b.X, ONE);
             Fp2 memory V2 = lmul(a.X, ONE);
             if (leq(V1, V2) && leq(U1, U2)) {
-                return doubleG2(a);
+                // TODO: Change this to double function back
+                return G2PointTmp(ONE, ONE, Fp2(FpLib.Fp(0,0), FpLib.Fp(0,0)));
+                /* return doubleG2(a); */
             } else if (leq(V1, V2)) {
                 return G2PointTmp(ONE, ONE, Fp2(FpLib.Fp(0,0), FpLib.Fp(0,0)));
             }
