@@ -588,6 +588,7 @@ def test_ladd_G2_1(proxy_contract, signing_root):
     print(f"v_cubed: {v_cubed}")
     print(f"w: {w}")
     assert result[0] == actual[0]
+    assert result[2] == actual[2]
     assert result[1] == actual[1]
     # assert v_cubed == actual[1]
     # assert w == actual[2]
