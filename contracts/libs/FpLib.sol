@@ -103,7 +103,6 @@ library FpLib  {
         uint r0;
         uint r1;
         uint r2;
-        uint r3;
         uint pb;
         uint pa;
         uint carry = 0;
@@ -123,7 +122,6 @@ library FpLib  {
 
         (pa, pb) = Math.lmul(x.a, y.a);
         (r2, carry) = Math.add(r2, pb, carry);
-        /* (r2, carry) = Math.add(r2, pa, carry); */
         require(pa==0, "overflow");
         require(carry==0, "overflow");
 

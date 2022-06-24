@@ -390,8 +390,8 @@ def test_lmul_unchecked_1(proxy_contract, fplib_contract, signing_root):
     assert utils.convert_huge_int_to_fp_repr(expected) == tuple(actual_repr)
 
 # @pytest.mark.skip(reason="no way of currently testing this")
-def test_lmul_0(proxy_contract, fplib_contract, signing_root):
-    FQ.field_modulus = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+def test_lmul_fplib_0(proxy_contract, fplib_contract, signing_root):
+    FQ.field_modulus = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
     FIELD_MODULUS = FQ(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab)
     points = proxy_contract.functions.signature_to_g2_points(signing_root).call()
     first_g2 = points[0]
@@ -422,18 +422,119 @@ def test_lmul_0(proxy_contract, fplib_contract, signing_root):
     second_g2_pyecc = tuple(second_g2_pyecc)
     result, v, v_sqr = addTest(first_g2_pyecc,second_g2_pyecc)
     print(f"       {v.coeffs = }")
-    # v0_repr = utils.convert_int_to_fp_repr(v0)
-    actual_repr = proxy_contract.functions.lmul(v, v).call()
+    v_repr = utils.convert_int_to_fp2_repr(v)
+    # v1, _ = v_repr
+    v1, _ = v.coeffs
+    v1_repr = utils.convert_int_to_fp_repr(v1)
+    actual_repr = fplib_contract.functions.lmul(v1_repr, v1_repr).call()
     # _, a, b = actual_repr
-    actual = FQ(utils.convert_huge_fp_to_int(actual_repr))
-    expected = v*v
+    expected = FQ(v1*v1)
     print(f"actual: {actual_repr}")
+    actual = FQ(utils.convert_fp_to_int(actual_repr))
+    print(f"actual: {actual}")
     # print(f"actual: {actual}")
-    # print(f"expected: {expected}")
-    print(f"expected_repr: {utils.convert_huge_int_to_fp_repr(expected)}")
+    print(f"expected: {expected}")
+    # print(f"expected_repr: {utils.convert_huge_int_to_fp_repr(expected)}")
     # # print(f"actual: {utils.convert_huge_fp_to_int(actual_repr)}")
 
-    assert utils.convert_huge_int_to_fp_repr(expected) == tuple(actual_repr)
+    assert expected == actual
+
+# @pytest.mark.skip(reason="no way of currently testing this")
+def test_lmul_fplib_1(proxy_contract, fplib_contract, signing_root):
+    FQ.field_modulus = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    FIELD_MODULUS = FQ(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab)
+    points = proxy_contract.functions.signature_to_g2_points(signing_root).call()
+    first_g2 = points[0]
+    second_g2 = points[1]
+    first_g2_pyecc =[]
+    for tup in first_g2:
+        p = []
+        for f in tup:
+            p.append(FQ(utils.convert_fp_to_int(f)))
+
+        p = FQ2(p)
+        first_g2_pyecc.append(p);
+    
+    first_g2_pyecc.append(FQ2.one());
+    first_g2_pyecc = tuple(first_g2_pyecc)
+
+    second_g2_pyecc =[]
+    for tup in second_g2:
+        p = []
+        for f in tup:
+            p.append(FQ(utils.convert_fp_to_int(f)))
+
+        p = FQ2(p)
+        second_g2_pyecc.append(p);
+    
+
+    second_g2_pyecc.append(FQ2.one());
+    second_g2_pyecc = tuple(second_g2_pyecc)
+    result, v, v_sqr = addTest(first_g2_pyecc,second_g2_pyecc)
+    print(f"       {v.coeffs = }")
+    v_repr = utils.convert_int_to_fp2_repr(v)
+    # v1, _ = v_repr
+    _, v0 = v.coeffs
+    v0_repr = utils.convert_int_to_fp_repr(v0)
+    actual_repr = fplib_contract.functions.lmul(v0_repr, v0_repr).call()
+    # _, a, b = actual_repr
+    expected = FQ(v0*v0)
+    print(f"actual: {actual_repr}")
+    actual = FQ(utils.convert_fp_to_int(actual_repr))
+    print(f"actual: {actual}")
+    # print(f"actual: {actual}")
+    print(f"expected: {expected}")
+    # print(f"expected_repr: {utils.convert_huge_int_to_fp_repr(expected)}")
+    # # print(f"actual: {utils.convert_huge_fp_to_int(actual_repr)}")
+
+    assert expected == actual
+
+# @pytest.mark.skip(reason="no way of currently testing this")
+def test_lmul_0(proxy_contract, fplib_contract, signing_root):
+    FQ.field_modulus = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    FIELD_MODULUS = FQ(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab)
+    points = proxy_contract.functions.signature_to_g2_points(signing_root).call()
+    first_g2 = points[0]
+    second_g2 = points[1]
+    first_g2_pyecc =[]
+    for tup in first_g2:
+        p = []
+        for f in tup:
+            p.append(FQ(utils.convert_fp_to_int(f)))
+
+        p = FQ2(p)
+        first_g2_pyecc.append(p);
+    
+    first_g2_pyecc.append(FQ2.one());
+    first_g2_pyecc = tuple(first_g2_pyecc)
+
+    second_g2_pyecc =[]
+    for tup in second_g2:
+        p = []
+        for f in tup:
+            p.append(FQ(utils.convert_fp_to_int(f)))
+
+        p = FQ2(p)
+        second_g2_pyecc.append(p);
+    
+
+    second_g2_pyecc.append(FQ2.one());
+    second_g2_pyecc = tuple(second_g2_pyecc)
+    result, v, v_sqr = addTest(first_g2_pyecc,second_g2_pyecc)
+    print(f"       {v.coeffs = }")
+    v_repr = utils.convert_int_to_fp2_repr(v)
+    actual_repr = proxy_contract.functions.lmul(v_repr, v_repr).call()
+    # _, a, b = actual_repr
+    expected = v*v
+    print(f"actual: {actual_repr}")
+    actual = FQ2([FQ(utils.convert_fp_to_int(repr)) for repr in actual_repr])
+    print(f"actual: {actual}")
+    # print(f"actual: {actual}")
+    print(f"expected: {expected}")
+    # print(f"expected_repr: {utils.convert_huge_int_to_fp_repr(expected)}")
+    # # print(f"actual: {utils.convert_huge_fp_to_int(actual_repr)}")
+
+    assert expected == actual
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_ladd_G2_1(proxy_contract, signing_root):
