@@ -337,11 +337,11 @@ contract DepositVerifier  {
             /* U1 = lsub(lsub(A1, V_cubed), A3); */
             V1 = lmul(V, A);
             V2 = lsub(lmul(U, lsub(V_sqr_times_v2, A)), lmul(V_cubed, U2));
-            /* A3 = lmul(V_cubed, W); */
+            A = lmul(V_cubed, W);
 
 
 
-            return G2PointTmp(V1, V2, V1);
+            return G2PointTmp(V1, V2, A);
 
         }
     /* function addG2NoPrecompile(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) { */
@@ -387,54 +387,6 @@ contract DepositVerifier  {
         /* return G2PointTmp(X, Y, Z); */
     }
 
-    function addG2(G2Point memory a, G2Point memory b) public view returns (G2Point memory) {
-        uint[16] memory input;
-        input[0]  = a.X.a.a;
-        input[1]  = a.X.a.b;
-        input[2]  = a.X.b.a;
-        input[3]  = a.X.b.b;
-        input[4]  = a.Y.a.a;
-        input[5]  = a.Y.a.b;
-        input[6]  = a.Y.b.a;
-        input[7]  = a.Y.b.b;
-
-        input[8]  = b.X.a.a;
-        input[9]  = b.X.a.b;
-        input[10] = b.X.b.a;
-        input[11] = b.X.b.b;
-        input[12] = b.Y.a.a;
-        input[13] = b.Y.a.b;
-        input[14] = b.Y.b.a;
-        input[15] = b.Y.b.b;
-
-        uint[8] memory output;
-
-        bool success;
-        assembly {
-            success := staticcall(
-                sub(gas(), 2000),
-                0xD,
-                input,
-                512,
-                output,
-                256
-            )
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid() }
-        }
-        require(success, "call to addition in G2 precompile failed");
-
-        return G2Point(
-            Fp2(
-                FpLib.Fp(output[0], output[1]),
-                FpLib.Fp(output[2], output[3])
-            ),
-            Fp2(
-                FpLib.Fp(output[4], output[5]),
-                FpLib.Fp(output[6], output[7])
-            )
-        );
-    }
     function signature_to_g2_points(bytes32 message) public view returns (G2Point memory, G2Point memory) {
         Fp2[2] memory messageElementsInField = hashToField(message);
         G2Point memory firstPoint = mapToCurve(messageElementsInField[0]);
@@ -452,13 +404,6 @@ contract DepositVerifier  {
     /* } */
     // Implements "hash to the curve" from the IETF BLS draft.
     // NOTE: function is exposed for testing...
-    function hashToCurve(bytes32 message) public view returns (G2Point memory) {
-        Fp2[2] memory messageElementsInField = hashToField(message);
-        G2Point memory firstPoint = mapToCurve(messageElementsInField[0]);
-        G2Point memory secondPoint = mapToCurve(messageElementsInField[1]);
-        return addG2(firstPoint, secondPoint);
-    }
-
     // NOTE: function is exposed for testing...
     /* function blsPairingCheck(G1Point memory publicKey, G2Point memory messageOnCurve, G2Point memory signature) public view returns (bool) { */
     /*     uint[24] memory input; */
