@@ -308,9 +308,6 @@ contract DepositVerifier  {
 
         } else {
             Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0));
-            Fp2 memory X;
-            Fp2 memory Y;
-            Fp2 memory Z;
             Fp2 memory U1 = lmul(b.Y, ONE);
             Fp2 memory U2 = lmul(a.Y, ONE);
             Fp2 memory V1 = lmul(b.X, ONE);
@@ -325,9 +322,23 @@ contract DepositVerifier  {
             Fp2 memory U = lsub(U1, U2);
             Fp2 memory V = lsub(V1, V2);
             Fp2 memory V_sqr = lmul(V, V);
+            Fp2 memory V_sqr_times_v2 = lmul(V_sqr, V2);
+            Fp2 memory V_cubed = lmul(V_sqr, V);
+            Fp2 memory W = lmul(ONE, ONE);
+/* A = U * U * W - V_cubed - 2 * V_squared_times_V2 */
+            Fp2 memory A1 = lmul(lmul(U, U), W);
+            Fp2 memory A3 = lmul(V_sqr_times_v2, 2);
+
+            // reutilizing variables due to stack size
+            // U1 = A
+            // V1 = New X
+            // V2 = New Y
+            U1 = lsub(lsub(A1, V_cubed), A3);
+            V1 = lmul(V, U1);
 
 
-            return G2PointTmp(U, V, V_sqr);
+
+            return G2PointTmp(V1, V_cubed, W);
 
         }
     /* function addG2NoPrecompile(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) { */
