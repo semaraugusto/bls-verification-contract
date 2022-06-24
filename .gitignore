@@ -1,9 +1,1 @@
 node_modules/
-parameters.json
-genesis.json
-types/ethers-contracts/
-cache/
-artifacts/
-build/
-docker/testData
-leveldb/
