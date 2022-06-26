@@ -28,18 +28,29 @@ def _get_json(filename):
     with open(filename) as f:
         return json.load(f)
 
+def _get_address(filename):
+    with open(filename) as f:
+        return f.read()
 
 def get_math_lib_json():
     filename = os.path.join(DIR, "../math.json")
     return _get_json(filename)
 
 def get_proxy_contract_json():
-    filename = os.path.join(DIR, "../deposit_verifier.json")
+    filename = os.path.join(DIR, "../build/contracts/Verifier.json")
     return _get_json(filename)
 
+def get_proxy_contract_address():
+    filename = os.path.join(DIR, "../verifier_addr.txt")
+    return _get_address(filename)
+
 def get_fplib_test_json():
-    filename = os.path.join(DIR, "../fplib_test.json")
+    filename = os.path.join(DIR, "../build/contracts/FpLibTest.json")
     return _get_json(filename)
+
+def get_fplib_test_address():
+    filename = os.path.join(DIR, "../fplib_test_addr.txt")
+    return _get_address(filename)
 
 
 @pytest.fixture
@@ -53,18 +64,22 @@ def tester(berlin_vm_configuration):
 
 
 @pytest.fixture
-def w3(tester):
-    web3 = Web3(EthereumTesterProvider(tester))
+# def w3(tester):
+def w3():
+    # web3 = Web3(EthereumTesterProvider(tester))
+    web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:9545"))
+    # web3.eth.defaultAccount = web3.eth.accounts[0]
     return web3
 
-def _deploy_contract(contract_json, w3, *args):
+def _deploy_contract(contract_json, contract_address, w3, *args):
     contract_bytecode = contract_json["bytecode"]
     contract_abi = contract_json["abi"]
     registration = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
-    tx_hash = registration.constructor(*args).transact()
+    me = w3.eth.accounts[0]
+    tx_hash = registration.constructor(*args).transact({"from": me})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     contract_deployed = w3.eth.contract(
-        address=tx_receipt.contractAddress, abi=contract_abi
+        address=contract_address, abi=contract_abi
     )
     return contract_deployed
 
@@ -74,20 +89,23 @@ def _deploy_contract(contract_json, w3, *args):
 
 @pytest.fixture
 def deposit_domain():
-    return compute_domain(DOMAIN_DEPOSIT)
+    domain = compute_domain(DOMAIN_DEPOSIT)
+    with open("domain.txt", "wb") as f:
+        f.write(domain)
+    return domain
 
 
 @pytest.fixture
 def proxy_contract_deployer():
     def _deployer(w3, deposit_domain):
-        return _deploy_contract(get_proxy_contract_json(), w3, deposit_domain)
+        return _deploy_contract(get_proxy_contract_json(), get_proxy_contract_address(), w3, deposit_domain)
 
     return _deployer
 
 @pytest.fixture
 def fplib_test_deployer():
     def _deployer(w3):
-        return _deploy_contract(get_fplib_test_json(), w3)
+        return _deploy_contract(get_fplib_test_json(), get_fplib_test_address(), w3)
 
     return _deployer
 

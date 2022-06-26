@@ -4,13 +4,19 @@ from py_ecc.fields import FQ, FQ2
 from py_ecc.bls.hash import expand_message_xmd
 from py_ecc.optimized_bls12_381 import FQ2, normalize
 import utils
+# import web3
 
 UINT_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 UINT_64_MAX = 18446744073709551615
 UINT_32_MAX = 18446744073709551615
 
-def test_base_field(fplib_contract):
+def test_base_field(fplib_contract, w3):
     expected = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    # w3.eth.defaultAccount = w3.eth.accounts[0]
+    print(fplib_contract)
+    print(fplib_contract.functions)
+    print(fplib_contract.functions)
+    me = w3.eth.accounts[0]
     actual = fplib_contract.functions.get_base_field().call()
     print(f"actual: {actual}")
     print(f"expected: {expected}")
