@@ -71,7 +71,6 @@ library FpLib  {
         uint r0;
         uint r1;
         uint r2;
-        uint r3;
         uint pb;
         uint pa;
         uint carry = 0;
@@ -94,8 +93,6 @@ library FpLib  {
         /* (r2, carry) = Math.add(r2, pa, carry); */
         require(pa==0, "overflow");
         require(carry==0, "overflow");
-        r3 = r3 + carry;
-        require(r3 == 0, "overflow");
 
         return (r2, r1, r0);
     }
@@ -127,7 +124,7 @@ library FpLib  {
 
         Fp memory result = Fp(r1, r0);
         Fp memory base_field = get_base_field();
-        if(r2 == 0 && gte(result, base_field)) {
+        if(r2 == 0 && gte(base_field, result)) {
             return result;
         }
         bytes memory data;

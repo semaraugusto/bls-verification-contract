@@ -162,6 +162,28 @@ contract Verifier  {
         return((x.a.a | x.a.b | x.b.a | x.b.b | y.a.a | y.a.b | y.b.a | y.b.b) == 0);
     }
 
+    function lmulTemp(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) {
+        /* Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
+        if (leq(x, ONE)) {
+            return y;
+        }
+        if (leq(y, ONE)) {
+            return x;
+        }
+        // (a+bi)(c+di) = (ac−bd) + (ad+bc)i
+        FpLib.Fp memory t1 = FpLib.lmul(x.a, y.a); 
+        FpLib.Fp memory t0 = FpLib.lmul(x.b, y.b); 
+        return Fp2(t1, t0);
+        FpLib.Fp memory r1 = FpLib.lsub(t1, t0); 
+        FpLib.Fp memory t1_plus_t0 = FpLib.ladd(t1, t0); 
+        FpLib.Fp memory yb_plus_ya = FpLib.ladd(y.a, y.b); 
+        FpLib.Fp memory xb_plus_xa = FpLib.ladd(x.a, x.b); 
+        FpLib.Fp memory xy_mul = FpLib.lmul(xb_plus_xa, yb_plus_ya); 
+        FpLib.Fp memory r0 = FpLib.lsub(xy_mul, t1_plus_t0); 
+        
+        /* return Fp2(t1, r0); */
+    }
+
     function lmul(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) {
         /* Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
         if (leq(x, ONE)) {

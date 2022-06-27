@@ -596,6 +596,78 @@ def test_ladd_G2_1(proxy_contract, signing_root):
     assert result == actual
     # assert actual == expected
 
+# @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
+def test_map_to_curve_lsub(fplib_contract, proxy_contract, signing_root):
+    FQ.field_modulus = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    iso_3_a, temp, expected = optimized_swu_G2_partial(field_elements[0])
+    # iso_3_a = FQ2([FQ(a) for a in iso_3_a.coeffs])
+    iso_3_a_repr = utils.convert_int_to_fp2_repr(iso_3_a)
+    temp_repr = utils.convert_int_to_fp2_repr(temp)
+    
+    iso_r1, iso_r0 = iso_3_a_repr
+    temp_r1, temp_r0 = temp_repr
+    
+    r1 = utils.convert_fp_to_int(iso_r1) * utils.convert_fp_to_int(temp_r1) % FQ.field_modulus
+    r0 = utils.convert_fp_to_int(iso_r0) * utils.convert_fp_to_int(temp_r0) % FQ.field_modulus
+
+    r1_repr = utils.convert_int_to_fp_repr(r1)
+    r0_repr = utils.convert_int_to_fp_repr(r0)
+    print(f"r1: {FQ(r1)}")
+    print(f"r0: {FQ(r0)}")
+
+
+    actual = fplib_contract.functions.lsub(r1_repr, r0_repr).call()
+    expected = FQ(r1 - r0)
+    print(actual)
+    # computed_first_group_element = tuple(
+    #     utils.convert_fp_to_int(fp_repr) for fp_repr in computed_first_group_element_parts
+    # )
+    assert actual == expected
+
+
+# @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
+def test_map_to_curve_lmul(proxy_contract, signing_root):
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    iso_3_a, temp, _ = optimized_swu_G2_partial(field_elements[0])
+    # iso_3_a = FQ2([FQ(a) for a in iso_3_a.coeffs])
+    iso_3_a_repr = utils.convert_int_to_fp2_repr(iso_3_a)
+    temp_repr = utils.convert_int_to_fp2_repr(temp)
+    iso_r1, iso_r0 = iso_3_a_repr
+    temp_r1, temp_r0 = temp_repr
+    
+    actual = proxy_contract.functions.lmulTemp(iso_3_a_repr, temp_repr).call()
+
+    r1 = utils.convert_fp_to_int(iso_r1) * utils.convert_fp_to_int(temp_r1) % FQ.field_modulus
+    r0 = utils.convert_fp_to_int(iso_r0) * utils.convert_fp_to_int(temp_r0)
+
+    r1_repr = utils.convert_int_to_fp_repr(r1)
+    r0_repr = utils.convert_big_to_fp_repr(r0)
+    print(f"{r1_repr = }")
+    print(f"{r0_repr = }")
+    print(f"{actual[0] = }")
+    print(f"{actual[1] = }")
+    print(f"{utils.convert_int_to_fp_repr(FQ.field_modulus-1) = }")
+    assert actual[0] == r1_repr
+    assert actual[1] == r0_repr
+
+@pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_map_to_curve_matches_spec(proxy_contract, signing_root):
     field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
     field_elements = tuple(
