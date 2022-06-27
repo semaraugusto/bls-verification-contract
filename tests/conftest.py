@@ -77,7 +77,7 @@ def _deploy_contract(contract_json, contract_address, w3, *args):
     registration = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
     me = w3.eth.accounts[0]
     tx_hash = registration.constructor(*args).transact({"from": me})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     contract_deployed = w3.eth.contract(
         address=contract_address, abi=contract_abi
     )

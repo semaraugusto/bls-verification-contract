@@ -40,10 +40,19 @@ def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     t2 = t ** 2
     iso_3_z_t2 = ISO_3_Z * t2
     temp = iso_3_z_t2 + iso_3_z_t2 ** 2
-    temp1 = ISO_3_A * temp  # -a(Z * t^2 + Z^2 * t^4)
-    print(temp1)
-    denominator = -(temp1)  # -a(Z * t^2 + Z^2 * t^4)
-    return (ISO_3_A, temp, temp1)
+    denominator = -(ISO_3_A * temp)  # -a(Z * t^2 + Z^2 * t^4)
+    temp = temp + FQ2.one()
+    numerator = ISO_3_B * temp  # b(Z * t^2 + Z^2 * t^4 + 1)
+    if denominator == FQ2.zero():
+        denominator = ISO_3_Z * ISO_3_A
+
+    # v = D^3
+    v = denominator ** 3
+    # u = N^3 + a * N * D^2 + b* D^3
+    u = (numerator ** 3) + (ISO_3_A * numerator * (denominator ** 2)) + (ISO_3_B * v)
+
+    return (v, u, u)
+
     # return (temp, t2, denominator)
 
 def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:

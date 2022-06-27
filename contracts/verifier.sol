@@ -174,14 +174,6 @@ contract Verifier  {
         FpLib.Fp memory t1 = FpLib.lmul(x.a, y.a); 
         FpLib.Fp memory t0 = FpLib.lmul(x.b, y.b); 
         return Fp2(t1, t0);
-        FpLib.Fp memory r1 = FpLib.lsub(t1, t0); 
-        FpLib.Fp memory t1_plus_t0 = FpLib.ladd(t1, t0); 
-        FpLib.Fp memory yb_plus_ya = FpLib.ladd(y.a, y.b); 
-        FpLib.Fp memory xb_plus_xa = FpLib.ladd(x.a, x.b); 
-        FpLib.Fp memory xy_mul = FpLib.lmul(xb_plus_xa, yb_plus_ya); 
-        FpLib.Fp memory r0 = FpLib.lsub(xy_mul, t1_plus_t0); 
-        
-        /* return Fp2(t1, r0); */
     }
 
     function lmul(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) {
@@ -353,24 +345,36 @@ contract Verifier  {
     // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
     // Found in Section 4 of https://eprint.iacr.org/2019/403
     function mapToCurve(Fp2 memory t) public view returns (G2PointTmp memory result) {
-        Fp2 memory t2 = lmul(t, t);
-        /* FpLib.Fp memory temp1 = FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)); */
-        /* FpLib.Fp memory temp2 = FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)); */
         Fp2 memory ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240));
         Fp2 memory ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012));
         Fp2 memory ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)));
+
+
+        Fp2 memory t2 = lmul(t, t);
         Fp2 memory iso_3_z_t2 = lmul(ISO_3_Z, t2);
         Fp2 memory temp = ladd(iso_3_z_t2, lmul(iso_3_z_t2, iso_3_z_t2));
-        t2 = lmul(temp, ISO_3_A);
-        /* Fp2 memory denominator = lsub(ZERO, temp1); */
-        /* temp = ladd(temp, ONE); */
-        /* Fp2 memory numerator = lmul(ISO_3_B, temp); */
-        /* if (leq(denominator, ZERO)) { */
-        /*     denominator = lmul(ISO_3_Z, ISO_3_A); */
-        /* } */
+        /* t2 = lmul(temp, ISO_3_A); */
+        Fp2 memory denominator = lsub(ZERO, lmul(temp, ISO_3_A));
+        temp = ladd(temp, ONE);
+        Fp2 memory numerator = lmul(ISO_3_B, temp);
+        if (leq(denominator, ZERO)) {
+            denominator = lmul(ISO_3_Z, ISO_3_A);
+        }
+        Fp2 memory denominator_sqr = lmul(denominator, denominator);
+
+        Fp2 memory v = lmul(denominator, denominator_sqr);
+
+        // t2, temp being used as temporary variable
+        // t2 == (ISO_3_A * numerator * (denominator ** 2))
+        // temp == (ISO_3_B * v)
+        t2 = lmul(lmul(numerator, ISO_3_A), denominator_sqr);
+        temp = lmul(ISO_3_B, v);
+
+        Fp2 memory numerator_sqr = lmul(numerator, numerator);
+        Fp2 memory u = ladd(ladd(lmul(numerator, numerator_sqr), t2), temp);
         /* Fp2 memory t2; */
         /* Fp2 memory ISO_3_Z; */
-        result = G2PointTmp(ISO_3_A, temp, t2);
+        result = G2PointTmp(v, u, u);
         return result;
     }
 
