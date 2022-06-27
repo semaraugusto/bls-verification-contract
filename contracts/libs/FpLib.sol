@@ -358,7 +358,12 @@ library FpLib  {
             (r0, carry) = Math.lsub(y.b, x.b, carry);
             (r1, carry) = Math.lsub(y.a, x.a, carry);
             require(carry == 0, "overflow");
-            return lsub(get_base_field(), Fp(r1, r0));
+            Fp memory base_field = get_base_field();
+            (r0, carry) = Math.lsub(base_field.b, r0, carry);
+            (r1, carry) = Math.lsub(base_field.a, r1, carry);
+            require(carry == 0, "WEIRD overflow");
+            return Fp(r1, r0);
+            /* return lsub(get_base_field(), Fp(r1, r0)); */
         }
     }}
     /* function lsub(Fp memory x, Fp memory y) internal pure returns (Fp memory) { unchecked { */

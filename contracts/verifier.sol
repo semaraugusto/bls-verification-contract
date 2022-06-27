@@ -43,9 +43,12 @@ contract Verifier  {
         Fp2 Z;
     }
     Fp2 ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0));
+    Fp2 ZERO = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 0));
     uint256 constant BLS_BASE_FIELD_B = 0x64774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
     uint256 constant BLS_BASE_FIELD_A = 0x1a0111ea397fe69a4b1ba7b6434bacd7;
     FpLib.Fp BASE_FIELD = FpLib.Fp(BLS_BASE_FIELD_A, BLS_BASE_FIELD_B);
+    /* Fp2 ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
+    /* Fp2 ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
     /* Fp constant BASE_FIELD = Fp(BLS_BASE_FIELD_A, BLS_BASE_FIELD_B); */
     // uint constant BLS12_381_BASE_FIELD_MODULUS = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
 
@@ -295,7 +298,7 @@ contract Verifier  {
     /*         return res; */
     /*     } */
     /*     if(leq(a.X, b.X) && leq(a.Y, b.Y)) { */
-    /**/
+
     /*     } else { */
     /*         Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
     /*         Fp2 memory X; */
@@ -305,9 +308,7 @@ contract Verifier  {
     /*         Fp2 memory U2 = lmul(b.Y, ONE); */
     /*         Fp2 memory V1 = lmul(b.Y, ONE); */
     /*         Fp2 memory V2 = lmul(b.Y, ONE); */
-    /**/
-    /*         return G2PointTmp(X, Y, Z); */
-    /**/
+            /* return G2PointTmp(X, Y, Z); */
     /*     } */
         /* Fp2 memory X; */
         /* Fp2 memory Y; */
@@ -326,6 +327,29 @@ contract Verifier  {
         /* Y = lsub(lmul(r, lsub(V, X)), lmul(lmul(a.Y, H), J)); */
         /* Z = lmul(H, 2); */
         /* return G2PointTmp(X, Y, Z); */
+    }
+    // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
+    // Found in Section 4 of https://eprint.iacr.org/2019/403
+    function mapToCurve(Fp2 memory t) public view returns (G2PointTmp memory result) {
+        Fp2 memory t2 = lmul(t, t);
+        /* FpLib.Fp memory temp1 = FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)); */
+        /* FpLib.Fp memory temp2 = FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)); */
+        Fp2 memory ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240));
+        Fp2 memory ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012));
+        Fp2 memory ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)));
+        Fp2 memory iso_3_z_t2 = lmul(ISO_3_Z, t2);
+        Fp2 memory temp = ladd(iso_3_z_t2, lmul(iso_3_z_t2, iso_3_z_t2));
+        t2 = lmul(temp, ISO_3_A);
+        /* Fp2 memory denominator = lsub(ZERO, temp1); */
+        /* temp = ladd(temp, ONE); */
+        /* Fp2 memory numerator = lmul(ISO_3_B, temp); */
+        /* if (leq(denominator, ZERO)) { */
+        /*     denominator = lmul(ISO_3_Z, ISO_3_A); */
+        /* } */
+        /* Fp2 memory t2; */
+        /* Fp2 memory ISO_3_Z; */
+        result = G2PointTmp(ISO_3_A, temp, t2);
+        return result;
     }
 
     /* function signature_to_g2_points(bytes32 message) public view returns (G2Point memory, G2Point memory) { */
@@ -370,7 +394,6 @@ contract Verifier  {
     /*     G1Point memory publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate); */
     /*     G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate); */
     /*     G2Point memory messageOnCurve = hashToCurve(message); */
-    /**/
     /*     return blsPairingCheck(publicKey, messageOnCurve, signature); */
     /* } */
 }
