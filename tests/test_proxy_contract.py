@@ -73,11 +73,11 @@ def test_expand_message_matches_spec(proxy_contract, signing_root, dst):
 
 def test_hash_to_field_matches_spec(proxy_contract, signing_root, dst):
     result = proxy_contract.functions.hashToField(signing_root).call()
-    utils.converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
 
     spec_result = hash_to_field_FQ2(signing_root, 2, dst, hashlib.sha256)
 
-    assert utils.converted_result == spec_result
+    assert converted_result == spec_result
 
 def test_ladd_fq2(proxy_contract):
     FQ.field_modulus = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
@@ -632,34 +632,34 @@ def test_map_to_curve_matches_spec(proxy_contract, signing_root):
 def test_hash_g2_is_zero(proxy_contract, signing_root, dst):
     
     result = proxy_contract.functions.hashToCurve(signing_root).call()
-    utils.converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
 
     spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
 
-    assert utils.converted_result == spec_result
+    assert converted_result == spec_result
 
 @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_hash_to_curve_matches_spec(proxy_contract, signing_root, dst):
     result = proxy_contract.functions.hashToCurve(signing_root).call()
-    utils.converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
 
     spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
 
-    assert utils.converted_result == spec_result
+    assert converted_result == spec_result
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_hash_to_curve_no_precompile_matches_spec(proxy_contract, signing_root, dst):
     result = proxy_contract.functions.hashToCurveNoPrecompile(signing_root).call()
     expected1 = proxy_contract.functions.hashToCurve(signing_root).call()
     points = proxy_contract.functions.signature_to_g2_points(signing_root).call()
-    utils.converted_expected = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in expected1)
-    utils.converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    converted_expected = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in expected1)
+    converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
     spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
-    # utils.converted_result = tuple(convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    # converted_result = tuple(convert_fp2_to_int(fp2_repr) for fp2_repr in result)
     # expected1 = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in expected1)
     first_g2 = points[0]
     second_g2 = points[1]
-    print(f"expected: {utils.converted_expected}")
+    print(f"expected: {converted_expected}")
     print(f"actual: {spec_result}")
     # print(f"first_point: {first_point}")
     first_g2_a = first_g2[0]
@@ -685,16 +685,16 @@ def test_hash_to_curve_no_precompile_matches_spec(proxy_contract, signing_root, 
     print(f"second_point_g2_b_b: {second_g2_b_b}")
 
     # print(f"second_point: {second_point}")
-    assert utils.converted_expected == spec_result
-    assert utils.converted_result == spec_result
+    assert converted_expected == spec_result
+    assert converted_result == spec_result
 
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_hash_to_curve_no_precompile_matches_spec_2(proxy_contract, signing_root, dst):
     result = proxy_contract.functions.hashToCurveNoPrecompile(signing_root).call()
     expected = proxy_contract.functions.hashToCurve(signing_root).call()
-    utils.converted_result = tuple(convert_fp2_to_int(fp2_repr) for fp2_repr in result)
+    converted_result = tuple(convert_fp2_to_int(fp2_repr) for fp2_repr in result)
     # spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
-    # print(f"expected: {utils.converted_result}")
+    # print(f"expected: {converted_result}")
     # print(f"actual: {spec_result}")
     assert expected == result
 
