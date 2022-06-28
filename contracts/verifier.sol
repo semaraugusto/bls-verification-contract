@@ -167,20 +167,6 @@ contract Verifier  {
         return((x.a.a | x.a.b | x.b.a | x.b.b | y.a.a | y.a.b | y.b.a | y.b.b) == 0);
     }
 
-    function lmulTemp(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) {
-        /* Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
-        if (leq(x, ONE)) {
-            return y;
-        }
-        if (leq(y, ONE)) {
-            return x;
-        }
-        // (a+bi)(c+di) = (ac−bd) + (ad+bc)i
-        FpLib.Fp memory t1 = FpLib.lmul(x.a, y.a); 
-        FpLib.Fp memory t0 = FpLib.lmul(x.b, y.b); 
-        return Fp2(t1, t0);
-    }
-
     function lmul(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) {
         /* Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
         if (leq(x, ONE)) {
@@ -304,50 +290,10 @@ contract Verifier  {
             V1 = lmul(V, A);
             V2 = lsub(lmul(U, lsub(V_sqr_times_v2, A)), lmul(V_cubed, U2));
             A = lmul(V_cubed, W);
-
             return G2PointTmp(V1, V2, A);
-
         }
-    /* function addG2NoPrecompile(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) { */
-    /*     if(G2_isZeroNoPrecompile(a.X, a.Y)) {  */
-    /*         G2PointTmp memory res = G2PointTmp(b.X, b.Y, Fp2(FpLib.Fp(0,0), FpLib.Fp(0,0))); */
-    /*         return res; */
-    /*     } */
-    /*     if (G2_isZeroNoPrecompile(b.X, b.Y)) {  */
-    /*         G2PointTmp memory res = G2PointTmp(a.X, a.Y, Fp2(FpLib.Fp(0,0), FpLib.Fp(0,0))); */
-    /*         return res; */
-    /*     } */
-    /*     if(leq(a.X, b.X) && leq(a.Y, b.Y)) { */
-
-    /*     } else { */
-    /*         Fp2 memory ONE = Fp2(FpLib.Fp(0, 1), FpLib.Fp(0, 0)); */
-    /*         Fp2 memory X; */
-    /*         Fp2 memory Y; */
-    /*         Fp2 memory Z; */
-    /*         Fp2 memory U1 = lmul(b.Y, ONE); */
-    /*         Fp2 memory U2 = lmul(b.Y, ONE); */
-    /*         Fp2 memory V1 = lmul(b.Y, ONE); */
-    /*         Fp2 memory V2 = lmul(b.Y, ONE); */
-            /* return G2PointTmp(X, Y, Z); */
-    /*     } */
-        /* Fp2 memory X; */
-        /* Fp2 memory Y; */
-        /* Fp2 memory Z; */
-        /* Fp2 memory y_sub = lsub(b.Y, a.Y); */
-        /* Fp2 memory y_sub_sqr = lsquare(y_sub); */
-        /* Fp2 memory x_sub = lsub(b.X, a.X); */
-        /* Fp2 memory H = lsub(b.X, a.X); */
-        /* Fp2 memory HH = lsquare(H); */
-        /* Fp2 memory I = lmul(HH, 4); */
-        /* Fp2 memory J = lmul(H, I); */
-        /* Fp2 memory sub_res = lsub(b.Y, a.Y); */
-        /* Fp2 memory r = lmul(lsub(b.Y, a.Y), 2); */
-        /* Fp2 memory V = lmul(a.X, I); */
-        /* X = lsub(lsub(lsquare(r), J), lmul(V, 2)); */
-        /* Y = lsub(lmul(r, lsub(V, X)), lmul(lmul(a.Y, H), J)); */
-        /* Z = lmul(H, 2); */
-        /* return G2PointTmp(X, Y, Z); */
     }
+
     function fastExp(Fp2 memory p, uint exp) public view returns (Fp2 memory result) {
         if(exp == 0) {
             return ONE;
@@ -361,22 +307,18 @@ contract Verifier  {
             if(n % 2 == 1) {
                 result = lmul(result, x);
             }
-            n = n/2;
+            n = n>>1;
             x = lmul(x, x);
         }
         return result;
     }
+
     // Square Root Division
     // Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity
     // If valid square root is found return true, else false
     function sqrtDivision(Fp2 memory u, Fp2 memory v) public view returns (G2PointTmp memory result) {
 
-        Fp2 memory v2 = lmul(v, v);
-        Fp2 memory v4 = lmul(v2, v2);
-        Fp2 memory v7_slow = lmul(lmul(v4, v2), v);
         Fp2 memory v7 = fastExp(v, 7);
-        require(leq(v7_slow, v7), "wrong result");
-
         // uv^7
         Fp2 memory temp1 = lmul(u, v7);
 
@@ -384,9 +326,10 @@ contract Verifier  {
         Fp2 memory temp2 = lmul(temp1, lmul(v7, v));
 
         // gamma =  uv^7 * (uv^15)^((p^2 - 9) / 16)
+        /* Fp2 memory gamma = temp2; */
         Fp2 memory gamma = fastExp(temp2, P_MINUS_9_DIV_16_r0);
-        gamma = fastExp(gamma, P_MINUS_9_DIV_16_r1);
-        gamma = fastExp(gamma, P_MINUS_9_DIV_16_r2);
+        /* gamma = fastExp(gamma, P_MINUS_9_DIV_16_r1); */
+        /* gamma = fastExp(gamma, P_MINUS_9_DIV_16_r2); */
         return G2PointTmp(temp1, temp2, gamma);
     }
 
