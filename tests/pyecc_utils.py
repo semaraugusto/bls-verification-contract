@@ -106,6 +106,15 @@ def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
 
     return (numerator, y, denominator)
 
+def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
+    v7 = v ** 7
+    temp1 = u * v7
+    temp2 = temp1 * v ** 8
+
+    gamma = temp2 ** P_MINUS_9_DIV_16
+    return (temp1, temp2, gamma)
+
+
 # Square Root Division
 # Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity
 # If valid square root is found return true, else false

@@ -342,7 +342,7 @@ library FpLib  {
         /* bitLength(p.b); */
     }}
 
-    function lsub(FpLib.Fp memory x, FpLib.Fp memory y) internal view returns (FpLib.Fp memory) { unchecked {
+    function lsub(Fp memory x, Fp memory y) internal view returns (Fp memory) { unchecked {
         uint r0;
         uint r1;
         uint carry = 0;

@@ -13,6 +13,7 @@ contract Verifier  {
     uint constant WITHDRAWAL_CREDENTIALS_LENGTH = 32;
     uint constant WEI_PER_GWEI = 1e9;
     uint constant UINT_MAX = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    /* uint constant P_MINUS_9_DIV_16 = 1001205140483106588246484290269935788605945006208159541241399033561623546780709821462541004956387089373434649096260670658193992783731681621012512651314777238193313314641988297376025498093520728838658813979860931248214124593092835; */
 
     string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_+";
     bytes1 constant BLS_BYTE_WITHOUT_FLAGS_MASK = bytes1(0x1f);
@@ -47,6 +48,10 @@ contract Verifier  {
     uint256 constant BLS_BASE_FIELD_B = 0x64774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
     uint256 constant BLS_BASE_FIELD_A = 0x1a0111ea397fe69a4b1ba7b6434bacd7;
     FpLib.Fp BASE_FIELD = FpLib.Fp(BLS_BASE_FIELD_A, BLS_BASE_FIELD_B);
+
+    uint256 P_MINUS_9_DIV_16_r2 = 0x2a437a4b8c35fc74bd278eaa22f25e9e2dc90e50e7046b466e59e49349e8bd;
+    uint256 P_MINUS_9_DIV_16_r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04;
+    uint256 P_MINUS_9_DIV_16_r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3;
     /* Fp2 ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
     /* Fp2 ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
     /* Fp constant BASE_FIELD = Fp(BLS_BASE_FIELD_A, BLS_BASE_FIELD_B); */
@@ -216,6 +221,7 @@ contract Verifier  {
 
 
     function ldiv(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) { unchecked {
+        revert("not implemented!");
         FpLib.Fp memory a = FpLib.ldiv(x.a, y.a);
         FpLib.Fp memory b = FpLib.ldiv(x.b, y.b);
         return Fp2(a, b);
@@ -342,6 +348,49 @@ contract Verifier  {
         /* Z = lmul(H, 2); */
         /* return G2PointTmp(X, Y, Z); */
     }
+    function fastExp(Fp2 memory p, uint exp) public view returns (Fp2 memory result) {
+        if(exp == 0) {
+            return ONE;
+        } else if (exp == 1) {
+            return p;
+        }
+        Fp2 memory x = p;
+        result = ONE;
+        uint n = exp;
+        while (n > 0) {
+            if(n % 2 == 1) {
+                result = lmul(result, x);
+            }
+            n = n/2;
+            x = lmul(x, x);
+        }
+        return result;
+    }
+    // Square Root Division
+    // Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity
+    // If valid square root is found return true, else false
+    function sqrtDivision(Fp2 memory u, Fp2 memory v) public view returns (G2PointTmp memory result) {
+
+        Fp2 memory v2 = lmul(v, v);
+        Fp2 memory v4 = lmul(v2, v2);
+        Fp2 memory v7_slow = lmul(lmul(v4, v2), v);
+        Fp2 memory v7 = fastExp(v, 7);
+        require(leq(v7_slow, v7), "wrong result");
+
+        // uv^7
+        Fp2 memory temp1 = lmul(u, v7);
+
+        // uv^15
+        Fp2 memory temp2 = lmul(temp1, lmul(v7, v));
+
+        // gamma =  uv^7 * (uv^15)^((p^2 - 9) / 16)
+        Fp2 memory gamma = fastExp(temp2, P_MINUS_9_DIV_16_r0);
+        gamma = fastExp(gamma, P_MINUS_9_DIV_16_r1);
+        gamma = fastExp(gamma, P_MINUS_9_DIV_16_r2);
+        return G2PointTmp(temp1, temp2, gamma);
+    }
+
+
     // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
     // Found in Section 4 of https://eprint.iacr.org/2019/403
     function mapToCurve(Fp2 memory t) public view returns (G2PointTmp memory result) {
@@ -363,17 +412,14 @@ contract Verifier  {
         Fp2 memory denominator_sqr = lmul(denominator, denominator);
 
         Fp2 memory v = lmul(denominator, denominator_sqr);
-
         // t2, temp being used as temporary variable
         // t2 == (ISO_3_A * numerator * (denominator ** 2))
         // temp == (ISO_3_B * v)
         t2 = lmul(lmul(numerator, ISO_3_A), denominator_sqr);
         temp = lmul(ISO_3_B, v);
-
         Fp2 memory numerator_sqr = lmul(numerator, numerator);
         Fp2 memory u = ladd(ladd(lmul(numerator, numerator_sqr), t2), temp);
-        /* Fp2 memory t2; */
-        /* Fp2 memory ISO_3_Z; */
+
         result = G2PointTmp(v, u, u);
         return result;
     }

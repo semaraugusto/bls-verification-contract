@@ -20,6 +20,7 @@ from py_ecc.bls.g2_primatives import pubkey_to_G1, signature_to_G2
 from py_ecc.optimized_bls12_381.optimized_curve import normalize
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
+import utils
 
 DIR = os.path.dirname(__file__)
 
@@ -62,6 +63,14 @@ def berlin_vm_configuration():
 def tester(berlin_vm_configuration):
     return EthereumTester(PyEVMBackend(vm_configuration=berlin_vm_configuration))
 
+
+@pytest.fixture
+def field_elements(proxy_contract, signing_root):
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+    return field_elements
 
 @pytest.fixture
 # def w3(tester):

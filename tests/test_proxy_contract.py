@@ -31,7 +31,7 @@ from py_ecc.bls.hash_to_curve import (
     hash_to_field_FQ2,
     hash_to_G2,
 )
-from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial
+from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial
 # from py_ecc.bls12_381 import add
 from py_ecc.bls import G2ProofOfPossession
 from py_ecc.optimized_bls12_381 import FQ2, normalize, add
@@ -595,6 +595,43 @@ def test_ladd_G2_1(proxy_contract, signing_root):
     # assert exp == expected
     assert result == actual
     # assert actual == expected
+
+# @pytest.mark.timeout(300)
+def test_sqrt_division_fq2(proxy_contract, signing_root):
+    FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    (v, u, _) = optimized_swu_G2_partial(field_elements[0])
+    expected = sqrt_division_FQ2_partial(v, u)
+    print(f"v: {v}")
+    print(f"u: {u}")
+    print(f"v.coeffs: {v.coeffs}")
+    print(f"u.coeffs: {u.coeffs}")
+    v_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in v.coeffs])
+    u_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in u.coeffs])
+    print(f"v.repr: {v_repr}")
+    print(f"u.repr: {u_repr}")
+    actual = proxy_contract.functions.sqrtDivision(v_repr, u_repr).call()
+    actual = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
+    )
+    print(f"  actual[0]: {actual[0]}")
+    print(f"expected[0]: {expected[0]}")
+    print(f"  actual[1]: {actual[1]}")
+    print(f"expected[1]: {expected[1]}")
+    print(f"  actual[2]: {actual[2]}")
+    print(f"expected[2]: {expected[2]}")
+    assert actual[0] == expected[0]
+    assert actual[1] == expected[1]
+    assert actual[2] == expected[2]
+    assert actual == expected
 
 # @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_map_to_curve_matches_spec(proxy_contract, signing_root):
