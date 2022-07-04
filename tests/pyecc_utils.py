@@ -36,6 +36,9 @@ from py_ecc.bls.hash import (
 from py_ecc.bls.typing import G2Uncompressed
 
 
+def exponentiateBy(t: FQ2, exp) -> Tuple[FQ2, FQ2, FQ2]:
+    return t**exp
+
 def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     t2 = t ** 2
     iso_3_z_t2 = ISO_3_Z * t2
@@ -111,6 +114,9 @@ def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     temp1 = u * v7
     temp2 = temp1 * v ** 8
 
+    # r2 = 0x2a437a4b8c35fc74bd278eaa22f25e9e2dc90e50e7046b466e59e49349e8bd
+    # r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04
+    # r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3
     gamma = temp2 ** P_MINUS_9_DIV_16
     return (temp1, temp2, gamma)
 

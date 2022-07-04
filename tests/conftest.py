@@ -76,7 +76,7 @@ def field_elements(proxy_contract, signing_root):
 # def w3(tester):
 def w3():
     # web3 = Web3(EthereumTesterProvider(tester))
-    web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:9545"))
+    web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:9545", request_kwargs={"timeout": 300}))
     # web3.eth.defaultAccount = web3.eth.accounts[0]
     return web3
 

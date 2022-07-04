@@ -52,6 +52,7 @@ contract Verifier  {
     uint256 P_MINUS_9_DIV_16_r2 = 0x2a437a4b8c35fc74bd278eaa22f25e9e2dc90e50e7046b466e59e49349e8bd;
     uint256 P_MINUS_9_DIV_16_r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04;
     uint256 P_MINUS_9_DIV_16_r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3;
+    
     /* Fp2 ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
     /* Fp2 ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
     /* Fp constant BASE_FIELD = Fp(BLS_BASE_FIELD_A, BLS_BASE_FIELD_B); */
@@ -293,6 +294,40 @@ contract Verifier  {
             return G2PointTmp(V1, V2, A);
         }
     }
+    function bigFastExp(Fp2 memory p, uint exp_r0, uint exp_r1, uint exp_r2) public view returns (Fp2 memory result) {
+        require(exp_r1 > 0, "bigFastExp needs to receive a 784 non left padded value");
+        require(exp_r2 > 0, "bigFastExp needs to receive a 784 non left padded value");
+        Fp2 memory x = p;
+        result = ONE;
+        uint n = exp_r0;
+        uint i;
+        for (i = 0; i < 256; i++) {
+        /* while (n > 0) { */
+            if(n % 2 == 1) {
+                result = lmul(result, x);
+            }
+            n = n>>1;
+            x = lmul(x, x);
+        }
+        n = exp_r1;
+        for (i = 0; i < 256; i++) {
+        /* while (n > 0) { */
+            if(n % 2 == 1) {
+                result = lmul(result, x);
+            }
+            n = n>>1;
+            x = lmul(x, x);
+        }
+        n = exp_r2;
+        while (n > 0) {
+            if(n % 2 == 1) {
+                result = lmul(result, x);
+            }
+            n = n>>1;
+            x = lmul(x, x);
+        }
+        return result;
+    }
 
     function fastExp(Fp2 memory p, uint exp) public view returns (Fp2 memory result) {
         if(exp == 0) {
@@ -327,12 +362,12 @@ contract Verifier  {
 
         // gamma =  uv^7 * (uv^15)^((p^2 - 9) / 16)
         /* Fp2 memory gamma = temp2; */
-        Fp2 memory gamma = fastExp(temp2, P_MINUS_9_DIV_16_r0);
+        Fp2 memory gamma = bigFastExp(temp2, P_MINUS_9_DIV_16_r0, P_MINUS_9_DIV_16_r1, P_MINUS_9_DIV_16_r2);
+        /* Fp2 memory gamma = fastExp(temp2, P_MINUS_9_DIV_16_r0); */
         /* gamma = fastExp(gamma, P_MINUS_9_DIV_16_r1); */
         /* gamma = fastExp(gamma, P_MINUS_9_DIV_16_r2); */
         return G2PointTmp(temp1, temp2, gamma);
     }
-
 
     // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
     // Found in Section 4 of https://eprint.iacr.org/2019/403
