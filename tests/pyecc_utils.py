@@ -39,7 +39,7 @@ from py_ecc.bls.typing import G2Uncompressed
 def exponentiateBy(t: FQ2, exp) -> Tuple[FQ2, FQ2, FQ2]:
     return t**exp
 
-def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
+def optimized_swu_G2_partial(t: FQ2) -> Tuple[bool, Tuple[FQ2, FQ2, FQ2]]:
     t2 = t ** 2
     iso_3_z_t2 = ISO_3_Z * t2
     temp = iso_3_z_t2 + iso_3_z_t2 ** 2
@@ -54,7 +54,14 @@ def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     # u = N^3 + a * N * D^2 + b* D^3
     u = (numerator ** 3) + (ISO_3_A * numerator * (denominator ** 2)) + (ISO_3_B * v)
 
-    return (v, u, u)
+    (success, sqrt_candidate) = sqrt_division_FQ2(u, v)
+    y = sqrt_candidate
+
+    # Handle case where (u / v) is not square
+    # sqrt_candidate(x1) = sqrt_candidate(x0) * t^3
+    # sqrt_candidate = sqrt_candidate * t ** 3
+
+    return (success, (v, u, sqrt_candidate))
 
     # return (temp, t2, denominator)
 
@@ -109,6 +116,21 @@ def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
 
     return (numerator, y, denominator)
 
+def big_fast_exp(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
+    v7 = v ** 7
+    temp1 = u * v7
+    temp2 = temp1 * v ** 8
+
+    # r2 = 0x2a437a4b8c35fc74bd278eaa22f25e9e2dc90e50e7046b466e59e49349e8bd
+    # r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04
+    # r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3
+    gamma = temp2 ** P_MINUS_9_DIV_16
+    # gamma = gamma * temp1
+    return (temp1, temp2, gamma)
+
+def get_positive_eight_roots_of_unity():
+    return POSITIVE_EIGTH_ROOTS_OF_UNITY
+
 def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     v7 = v ** 7
     temp1 = u * v7
@@ -118,6 +140,12 @@ def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     # r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04
     # r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3
     gamma = temp2 ** P_MINUS_9_DIV_16
+    gamma = gamma * temp1
+    # Verify there is a valid root
+    is_valid_root = False
+    result = gamma
+    roots = POSITIVE_EIGTH_ROOTS_OF_UNITY
+    print(roots)
     return (temp1, temp2, gamma)
 
 

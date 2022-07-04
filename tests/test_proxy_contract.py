@@ -31,7 +31,7 @@ from py_ecc.bls.hash_to_curve import (
     hash_to_field_FQ2,
     hash_to_G2,
 )
-from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy
+from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy, big_fast_exp, get_positive_eight_roots_of_unity
 # from py_ecc.bls12_381 import add
 from py_ecc.bls import G2ProofOfPossession
 from py_ecc.optimized_bls12_381 import FQ2, normalize, add
@@ -607,7 +607,7 @@ def test_fast_exp_odd(proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    (v, u, _) = optimized_swu_G2_partial(field_elements[0])
+    (suc, (v, u, _)) = optimized_swu_G2_partial(field_elements[0])
     v_fp2 = tuple(
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
     )
@@ -633,7 +633,7 @@ def test_fast_exp_even(proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    (v, u, _) = optimized_swu_G2_partial(field_elements[0])
+    (suc, (v, u, _)) = optimized_swu_G2_partial(field_elements[0])
     v_fp2 = tuple(
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
     )
@@ -648,7 +648,18 @@ def test_fast_exp_even(proxy_contract, signing_root):
     print(f"actual: {actual}")
     assert actual == expected
 
+def test_roots_of_unity(w3, proxy_contract, signing_root):
+    actual = proxy_contract.functions.get_roots_of_unity().call()
+    actual = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
+    )
+    expected = get_positive_eight_roots_of_unity()
+    print(actual)
+    print(expected)
+    assert actual == expected
+
 @pytest.mark.timeout(400)
+@pytest.mark.skip(reason="slow....")
 def test_sqrt_division_fq2(w3, proxy_contract, signing_root):
     FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
     field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
@@ -660,8 +671,10 @@ def test_sqrt_division_fq2(w3, proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    (v, u, _) = optimized_swu_G2_partial(field_elements[0])
-    expected = sqrt_division_FQ2_partial(u, v)
+    (suc, (v, u, _)) = optimized_swu_G2_partial(field_elements[0])
+    print(f"success: {suc}")
+    # (v, u, _) = optimized_swu_G2_partial(field_elements[0])
+    expected = sqrt_division_FQ2(u, v)
     print(f"v: {v}")
     print(f"u: {u}")
     print(f"v.coeffs: {v.coeffs}")
@@ -679,22 +692,22 @@ def test_sqrt_division_fq2(w3, proxy_contract, signing_root):
     # print(tx_hash)
     # tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     # print(tx_receipt)
-    actual = tuple(
-        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
-    )
+    # actual = tuple(
+    #     utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
+    # )
+    actual = tuple([actual[0], utils.convert_fp2_to_int(actual[1])])
     print(f"  actual[0]: {actual[0]}")
     print(f"expected[0]: {expected[0]}")
     print(f"  actual[1]: {actual[1]}")
     print(f"expected[1]: {expected[1]}")
-    print(f"  actual[2]: {actual[2]}")
-    print(f"expected[2]: {expected[2]}")
     assert actual[0] == expected[0]
     assert actual[1] == expected[1]
-    assert actual[2] == expected[2]
+    # assert actual[2] == expected[2]
     assert actual == expected
 
+@pytest.mark.timeout(1500)
 # @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
-def test_map_to_curve_matches_spec(proxy_contract, signing_root):
+def test_map_to_curve_matches_spec(w3, proxy_contract, signing_root):
     field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
     field_elements = tuple(
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
@@ -704,32 +717,34 @@ def test_map_to_curve_matches_spec(proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    expected = optimized_swu_G2_partial(field_elements[0])
+    expected_suc, expected = optimized_swu_G2_partial(field_elements[0])
 
-    actual = proxy_contract.functions.mapToCurve(
+    me = w3.eth.accounts[0]
+    actual_suc, actual = proxy_contract.functions.mapToCurve(
         field_elements_parts[0]
-    ).call()
+    ).call({"from": me, "gas": '20000000'})
     actual = tuple(
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
     )
-    print("actual: {actual}")
-    print("expected: {expected}")
+    print(f"actual: {actual}")
+    print(f"expected: {expected}")
+    assert actual_suc == expected_suc
     assert actual[0] == expected[0]
     assert actual[1] == expected[1]
     assert actual[2] == expected[2]
 
-    expected = optimized_swu_G2_partial(field_elements[1])
-
-    actual = proxy_contract.functions.mapToCurve(
-        field_elements_parts[1]
-    ).call()
-    actual = tuple(
-        utils.convert_fp2_to_int(fp2_repr)
-        for fp2_repr in actual
-    )
-    assert actual[0] == expected[0]
-    assert actual[1] == expected[1]
-    assert actual[2] == expected[2]
+    # expected = optimized_swu_G2_partial(field_elements[1])
+    #
+    # actual = proxy_contract.functions.mapToCurve(
+    #     field_elements_parts[1]
+    # ).call({"from": me, "gas": '20000000'})
+    # actual = tuple(
+    #     utils.convert_fp2_to_int(fp2_repr)
+    #     for fp2_repr in actual
+    # )
+    # assert actual[0] == expected[0]
+    # assert actual[1] == expected[1]
+    # assert actual[2] == expected[2]
 
 @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_hash_g2_is_zero(proxy_contract, signing_root, dst):
