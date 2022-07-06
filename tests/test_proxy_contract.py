@@ -31,7 +31,7 @@ from py_ecc.bls.hash_to_curve import (
     hash_to_field_FQ2,
     hash_to_G2,
 )
-from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy
+from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy, get_roots_of_unity
 # from py_ecc.bls12_381 import add
 from py_ecc.bls import G2ProofOfPossession
 from py_ecc.optimized_bls12_381 import FQ2, normalize, add
@@ -649,7 +649,7 @@ def test_fast_exp_even(proxy_contract, signing_root):
     assert actual == expected
 
 @pytest.mark.timeout(400)
-def test_sqrt_division_fq2(w3, proxy_contract, signing_root):
+def test_sqrt_division_fq2_0(w3, proxy_contract, signing_root):
     FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
     field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
     field_elements = tuple(
@@ -662,20 +662,125 @@ def test_sqrt_division_fq2(w3, proxy_contract, signing_root):
     # )
     (v, u, _) = optimized_swu_G2_partial(field_elements[0])
     expected = sqrt_division_FQ2_partial(u, v)
-    print(f"v: {v}")
-    print(f"u: {u}")
-    print(f"v.coeffs: {v.coeffs}")
-    print(f"u.coeffs: {u.coeffs}")
     me = w3.eth.accounts[0]
-    print(f"accout: {me}")
     balance = w3.eth.get_balance(me)
-    print(f"BALANCE prev: {balance}")
     v_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in v.coeffs])
     u_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in u.coeffs])
-    print(f"v.repr: {v_repr}")
-    print(f"u.repr: {u_repr}")
     # actual = proxy_contract.functions.sqrtDivision(v_repr, u_repr).call()
-    actual = proxy_contract.functions.sqrtDivision(u_repr, v_repr).call({"from": me, "gas": '20000000'})
+    actual = proxy_contract.functions.sqrtDivisionTest(u_repr, v_repr).call({"from": me, "gas": '20000000'})
+    # print(tx_hash)
+    # tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    # print(tx_receipt)
+    actual = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
+    )
+    print(f"  actual[0]: {actual[0]}")
+    print(f"expected[0]: {expected[0]}")
+    print(f"  actual[1]: {actual[1]}")
+    print(f"expected[1]: {expected[1]}")
+    print(f"  actual[2]: {actual[2]}")
+    print(f"expected[2]: {expected[2]}")
+    assert actual[0] == expected[0]
+    assert actual[1] == expected[1]
+    assert actual[2] == expected[2]
+    assert actual == expected
+
+@pytest.mark.timeout(400)
+def test_check_roots_0(w3, proxy_contract, signing_root):
+    FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    (v, u, _) = optimized_swu_G2_partial(field_elements[0])
+    (temp1, temp2, gamma) = sqrt_division_FQ2_partial(u, v)
+    expected = sqrt_division_FQ2(u, v)
+    me = w3.eth.accounts[0]
+    balance = w3.eth.get_balance(me)
+    gamma_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in gamma.coeffs])
+    u_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in u.coeffs])
+    v_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in v.coeffs])
+    # actual = proxy_contract.functions.sqrtDivision(v_repr, u_repr).call()
+    actual = proxy_contract.functions.checkRoots(gamma_repr, u_repr, v_repr).call({"from": me, "gas": '20000000'})
+    # print(tx_hash)
+    # tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    # print(tx_receipt)
+    actual = tuple([actual[0], utils.convert_fp2_to_int(actual[1])])
+    print(f"  actual[0]: {actual[0]}")
+    print(f"expected[0]: {expected[0]}")
+    print(f"  actual[1]: {actual[1]}")
+    print(f"expected[1]: {expected[1]}")
+    assert actual[0] == expected[0]
+    assert actual[1] == expected[1]
+    assert actual == expected
+
+@pytest.mark.timeout(400)
+def test_check_roots_1(w3, proxy_contract, signing_root):
+    FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    (v, u, _) = optimized_swu_G2_partial(field_elements[1])
+    (temp1, temp2, gamma) = sqrt_division_FQ2_partial(u, v)
+    expected = sqrt_division_FQ2(u, v)
+    me = w3.eth.accounts[0]
+    balance = w3.eth.get_balance(me)
+    gamma_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in gamma.coeffs])
+    u_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in u.coeffs])
+    v_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in v.coeffs])
+    # actual = proxy_contract.functions.sqrtDivision(v_repr, u_repr).call()
+    actual = proxy_contract.functions.checkRoots(gamma_repr, u_repr, v_repr).call({"from": me, "gas": '20000000'})
+    # print(tx_hash)
+    # tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    # print(tx_receipt)
+    actual = tuple([actual[0], utils.convert_fp2_to_int(actual[1])])
+    print(f"  actual[0]: {actual[0]}")
+    print(f"expected[0]: {expected[0]}")
+    print(f"  actual[1]: {actual[1]}")
+    print(f"expected[1]: {expected[1]}")
+    assert actual[0] == expected[0]
+    assert actual[1] == expected[1]
+    assert actual == expected
+
+def test_roots_of_unity(proxy_contract):
+    expected = get_roots_of_unity()
+    actual = proxy_contract.functions.get_roots_of_unity().call()
+    actual = tuple(
+        utils.convert_fp2_to_int(fp_repr) for fp_repr in actual
+    )
+    assert expected == actual
+
+@pytest.mark.timeout(400)
+def test_sqrt_division_fq2_1(w3, proxy_contract, signing_root):
+    FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+    field_elements_parts = proxy_contract.functions.hashToField(signing_root).call()
+    field_elements = tuple(
+        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
+    )
+
+    # NOTE: mapToCurve (called below) precompile includes "clearing the cofactor"
+    # first_group_element = normalize(
+    #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
+    # )
+    (v, u, _) = optimized_swu_G2_partial(field_elements[1])
+    expected = sqrt_division_FQ2_partial(u, v)
+    me = w3.eth.accounts[0]
+    balance = w3.eth.get_balance(me)
+    v_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in v.coeffs])
+    u_repr = tuple([utils.convert_int_to_fp_repr(fp) for fp in u.coeffs])
+    # actual = proxy_contract.functions.sqrtDivision(v_repr, u_repr).call()
+    actual = proxy_contract.functions.sqrtDivisionTest(u_repr, v_repr).call({"from": me, "gas": '20000000'})
     # print(tx_hash)
     # tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     # print(tx_receipt)

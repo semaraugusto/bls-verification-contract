@@ -118,8 +118,11 @@ def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     # r1 = 0x050a62cfd16ddca6ef53149330978ef011d68619c86185c7b292e85a87091a04
     # r0 = 0x966bf91ed3e71b743162c338362113cfd7ced6b1d76382eab26aa00001c718e3
     gamma = temp2 ** P_MINUS_9_DIV_16
+    gamma = gamma * temp1
     return (temp1, temp2, gamma)
 
+def get_roots_of_unity():
+    return POSITIVE_EIGTH_ROOTS_OF_UNITY
 
 # Square Root Division
 # Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity
