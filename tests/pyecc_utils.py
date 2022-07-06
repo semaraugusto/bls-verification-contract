@@ -57,11 +57,18 @@ def optimized_swu_G2_partial(t: FQ2) -> Tuple[bool, Tuple[FQ2, FQ2, FQ2]]:
     (success, sqrt_candidate) = sqrt_division_FQ2(u, v)
     y = sqrt_candidate
 
+    # Handle case where (u / v) is not square
+    # sqrt_candidate(x1) = sqrt_candidate(x0) * t^3
+    sqrt_candidate = sqrt_candidate * t ** 3
+
+    # u(x1) = Z^3 * t^6 * u(x0)
+    u = (iso_3_z_t2) ** 3 * u
+
     return (success, (v, u, sqrt_candidate))
 
     # return (temp, t2, denominator)
 
-def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
+def optimized_swu_G2(t: FQ2) -> Tuple[bool, FQ2, FQ2, FQ2]:
     t2 = t ** 2
     iso_3_z_t2 = ISO_3_Z * t2
     temp = iso_3_z_t2 + iso_3_z_t2 ** 2
@@ -81,6 +88,7 @@ def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     # Attempt y = sqrt(u / v)
     (success, sqrt_candidate) = sqrt_division_FQ2(u, v)
     y = sqrt_candidate
+    y_test = sqrt_candidate
 
     # Handle case where (u / v) is not square
     # sqrt_candidate(x1) = sqrt_candidate(x0) * t^3
@@ -110,7 +118,7 @@ def optimized_swu_G2(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
 
     y = y * denominator
 
-    return (numerator, y, denominator)
+    return (success, numerator, denominator, y)
 
 def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     v7 = v ** 7
@@ -126,6 +134,9 @@ def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
 
 def get_roots_of_unity():
     return POSITIVE_EIGTH_ROOTS_OF_UNITY
+
+def get_etas():
+    return ETAS
 
 # Square Root Division
 # Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity

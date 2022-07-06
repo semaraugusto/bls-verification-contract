@@ -31,7 +31,7 @@ from py_ecc.bls.hash_to_curve import (
     hash_to_field_FQ2,
     hash_to_G2,
 )
-from pyecc_utils import map_to_curve_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy, get_roots_of_unity
+from pyecc_utils import map_to_curve_G2, optimized_swu_G2, optimized_swu_G2_partial, sqrt_division_FQ2, sqrt_division_FQ2_partial, exponentiateBy, get_roots_of_unity, get_etas
 # from py_ecc.bls12_381 import add
 from py_ecc.bls import G2ProofOfPossession
 from py_ecc.optimized_bls12_381 import FQ2, normalize, add
@@ -723,6 +723,23 @@ def test_roots_of_unity(proxy_contract):
     )
     assert expected == actual
 
+def test_etas(proxy_contract):
+    expected = get_etas()
+    # print(expected)
+    actual = proxy_contract.functions.get_etas().call()
+    actual = [utils.convert_fp2_to_int(a) for a in actual]
+    # print(actual)
+    print(expected[0])
+    print(actual[0])
+    # actual = tuple(
+    #     utils.convert_fp2_to_int(fp_repr) for fp_repr in actual
+    #)
+    assert expected[0] == actual[0]
+    assert expected[1] == actual[1]
+    assert expected[2] == actual[2]
+    assert expected[3] == actual[3]
+    assert expected == actual
+
 @pytest.mark.timeout(400)
 def test_sqrt_division_fq2_gamma_0(w3, proxy_contract, signing_root):
     FQ.field_modulus = 0xfa0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
@@ -873,21 +890,26 @@ def test_map_to_curve_matches_spec_0(w3, proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    (expected_suc, expected) = optimized_swu_G2_partial(field_elements[0])
+    (expected_suc, expected_numerator, expected_denominator, expected_y)  = optimized_swu_G2(field_elements[0])
 
     me = w3.eth.accounts[0]
-    (actual_suc, actual) = proxy_contract.functions.mapToCurve(
+    actual_suc, actual = proxy_contract.functions.mapToCurve(
         field_elements_parts[0]
     ).call({"from": me, "gas": '20000000'})
-    actual = tuple(
-        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
-    )
-    print("actual: {actual}")
-    print("expected: {expected}")
+    actual = tuple([utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual])
+    print(f"actual_suc: {actual_suc}")
+    print(f"expected_suc: {expected_suc}")
+    print(f"actual: {actual}")
+    print(f"actual[0]: {actual[0]}")
+    print(f"actual[1]: {actual[1]}")
+    print(f"actual[2]: {actual[2]}")
+    print(f"expected numerator: {expected_numerator}")
+    print(f"expected denominator: {expected_denominator}")
+    print(f"expected y: {expected_y}")
     assert actual_suc == expected_suc
-    assert actual[0] == expected[0]
-    assert actual[1] == expected[1]
-    assert actual[2] == expected[2]
+    assert actual[0] == expected_numerator
+    assert actual[1] == expected_denominator
+    assert actual[2] == expected_y
 
 @pytest.mark.timeout(1500)
 # @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
@@ -896,21 +918,25 @@ def test_map_to_curve_matches_spec_1(w3, proxy_contract, signing_root):
     field_elements = tuple(
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
     )
-    (expected_suc, expected) = optimized_swu_G2_partial(field_elements[1])
+
+    (expected_suc, expected_numerator, expected_denominator, expected_y)  = optimized_swu_G2(field_elements[1])
 
     me = w3.eth.accounts[0]
-    (actual_suc, actual) = proxy_contract.functions.mapToCurve(
-        field_elements_parts[1]
-    ).call({"from": me, "gas": '20000000'})
-    actual = tuple(
-        utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual
-    )
-    print("actual: {actual}")
-    print("expected: {expected}")
+    actual_suc, actual = proxy_contract.functions.mapToCurve(field_elements_parts[1]).call({"from": me, "gas": '20000000'})
+    actual = tuple([utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual])
+    print(f"actual_suc: {actual_suc}")
+    print(f"expected_suc: {expected_suc}")
+    print(f"actual: {actual}")
+    print(f"actual[0]: {actual[0]}")
+    print(f"actual[1]: {actual[1]}")
+    print(f"actual[2]: {actual[2]}")
+    print(f"expected numerator: {expected_numerator}")
+    print(f"expected denominator: {expected_denominator}")
+    print(f"expected y: {expected_y}")
     assert actual_suc == expected_suc
-    assert actual[0] == expected[0]
-    assert actual[1] == expected[1]
-    assert actual[2] == expected[2]
+    assert actual[0] == expected_numerator
+    assert actual[1] == expected_denominator
+    assert actual[2] == expected_y
 
 @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_hash_g2_is_zero(proxy_contract, signing_root, dst):

@@ -59,6 +59,20 @@ contract Verifier  {
     Fp2 ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240));
     Fp2 ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012));
     Fp2 ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)));
+
+    uint EV1_r1 = 0x699be3b8c6870965e5bf892ad5d2cc7;
+    uint EV1_r0 = 0xb0e85a117402dfd83b7f4a947e02d978498255a2aaec0ac627b5afbdf1bf1c90;
+    FpLib.Fp EV1 = FpLib.Fp(EV1_r1, EV1_r0);
+    uint EV2_r1 = 0x8157cd83046453f5dd0972b6e3949e4;
+    uint EV2_r0 = 0x288020b5b8a9cc99ca07e27089a2ce2436d965026adad3ef7baba37f2183e9b5;
+    FpLib.Fp EV2 = FpLib.Fp(EV2_r1, EV2_r0);
+    uint EV3_r1 = 0xab1c2ffdd6c253ca155231eb3e71ba0;
+    uint EV3_r0 = 0x44fd562f6f72bc5bad5ec46a0b7a3b0247cf08ce6c6317f40edbc653a72dee17;
+    FpLib.Fp EV3 = FpLib.Fp(EV3_r1, EV3_r0);
+    uint EV4_r1 = 0xaa404866706722864480885d68ad0cc;
+    uint EV4_r0 = 0xac1967c7544b447873cc37e0181271e006df72162a3d3e0287bf597fbf7f8fc1;
+    FpLib.Fp EV4 = FpLib.Fp(EV4_r1, EV4_r0);
+    /* Fp2[4] ETAS = [Fp2([EV1, EV2]), FQ2([-EV2, EV1]), FQ2([EV3, EV4]), FQ2([-EV4, EV3])] */
     
     /* Fp2 ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
     /* Fp2 ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
@@ -365,6 +379,19 @@ contract Verifier  {
         return POSITIVE_EIGTH_ROOTS_OF_UNITY;
     }
 
+    function get_etas() public view returns (Fp2[] memory) {
+
+        Fp2[] memory ETAS = new Fp2[](4);
+        ETAS[0] = Fp2(EV1, EV2);
+        ETAS[1] = Fp2(FpLib.lsub(BASE_FIELD, EV2), EV1);
+        ETAS[2] = Fp2(EV3, EV4);
+        ETAS[3] = Fp2(FpLib.lsub(BASE_FIELD, EV4), EV3);
+        /* ETAS[2] = Fp2(RV1, RV1); */
+        /* ETAS[3] = Fp2(RV1, FpLib.lsub(BASE_FIELD, RV1)); */
+
+        return ETAS;
+    }
+
     function checkRoots(Fp2 memory gamma, Fp2 memory u, Fp2 memory v) public view returns (bool, Fp2 memory) {
         Fp2[] memory POSITIVE_EIGTH_ROOTS_OF_UNITY;
         POSITIVE_EIGTH_ROOTS_OF_UNITY = get_roots_of_unity();
@@ -419,15 +446,12 @@ contract Verifier  {
         return G2PointTmp(temp1, temp2, gamma);
     }
 
-    // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
-    // Found in Section 4 of https://eprint.iacr.org/2019/403
-    function mapToCurve(Fp2 memory t) public view returns (bool, G2PointTmp memory result) {
-        /* Fp2 memory ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
-        /* Fp2 memory ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
-        /* Fp2 memory ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1))); */
+
+    function mapToCurveGetFraction(Fp2 memory t) public view returns (Fp2 memory, Fp2 memory, Fp2 memory) {
         Fp2 memory t2 = lmul(t, t);
         Fp2 memory iso_3_z_t2 = lmul(ISO_3_Z, t2);
-        Fp2 memory temp = ladd(iso_3_z_t2, lmul(iso_3_z_t2, iso_3_z_t2));
+        Fp2 memory iso_3_z_t2_sqr = lmul(iso_3_z_t2, iso_3_z_t2);
+        Fp2 memory temp = ladd(iso_3_z_t2, iso_3_z_t2_sqr);
         /* t2 = lmul(temp, ISO_3_A); */
         Fp2 memory denominator = lsub(ZERO, lmul(temp, ISO_3_A));
         temp = ladd(temp, ONE);
@@ -435,24 +459,103 @@ contract Verifier  {
         if (leq(denominator, ZERO)) {
             denominator = lmul(ISO_3_Z, ISO_3_A);
         }
+        return (iso_3_z_t2, numerator, denominator);
+    }
+    function mapToCurveGetUV(Fp2 memory numerator, Fp2 memory denominator) public view returns (Fp2 memory, Fp2 memory) {
         Fp2 memory denominator_sqr = lmul(denominator, denominator);
 
         Fp2 memory v = lmul(denominator, denominator_sqr);
-        // t2, temp being used as temporary variable
-        // t2 == (ISO_3_A * numerator * (denominator ** 2))
-        // temp == (ISO_3_B * v)
-        t2 = lmul(lmul(numerator, ISO_3_A), denominator_sqr);
-        temp = lmul(ISO_3_B, v);
+        Fp2 memory temp1 = lmul(lmul(numerator, ISO_3_A), denominator_sqr);
+        Fp2 memory temp2 = lmul(ISO_3_B, v);
         Fp2 memory numerator_sqr = lmul(numerator, numerator);
-        Fp2 memory u = ladd(ladd(lmul(numerator, numerator_sqr), t2), temp);
+        Fp2 memory numerator_cube = lmul(numerator_sqr, numerator);
+        Fp2 memory u = ladd(ladd(numerator_cube, temp1), temp2);
+        return (u, v);
+    }
+
+    function mapToCurveGetDivisionParams(Fp2 memory t, Fp2 memory iso_3_z_t2, Fp2 memory numerator, Fp2 memory denominator) public view returns (bool, Fp2 memory, Fp2 memory, Fp2 memory, Fp2 memory) {
+
+        Fp2 memory t3 = fastExp(t, 3);
+        Fp2 memory iso_3_z_t2_cube = fastExp(iso_3_z_t2, 3);
+        /* Fp2 memory denominator_sqr = lmul(denominator, denominator); */
+
+        /* Fp2 memory v = lmul(denominator, denominator_sqr); */
+        /* // t2, temp being used as temporary variable */
+        /* // t2 == (ISO_3_A * numerator * (denominator ** 2)) */
+        /* // temp == (ISO_3_B * v) */
+        /* Fp2 memory temp1 = lmul(lmul(numerator, ISO_3_A), denominator_sqr); */
+        /* Fp2 memory temp2 = lmul(ISO_3_B, v); */
+        /* Fp2 memory numerator_sqr = lmul(numerator, numerator); */
+        /* Fp2 memory numerator_cube = lmul(numerator_sqr, numerator); */
+        /* Fp2 memory u = ladd(ladd(numerator_cube, temp1), temp2); */
+        Fp2 memory u;
+        Fp2 memory v;
+        (u, v) = mapToCurveGetUV(numerator, denominator);
         bool success;
         Fp2 memory sqrt_candidate;
         (success, sqrt_candidate) = sqrtDivision(u, v);
+        Fp2 memory y = sqrt_candidate;
+        // sqrt_candidate = sqrt_candidate * t ** 3
+        sqrt_candidate = lmul(sqrt_candidate, t3);
 
+        // u(x1) = Z^3 * t^6 * u(x0)
+        // u = (iso_3_z_t2) ** 3 * u
+        u = lmul(iso_3_z_t2_cube, u);
+
+        return (success, u, v, y, sqrt_candidate);
+    }
+
+    // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
+    // Found in Section 4 of https://eprint.iacr.org/2019/403
+    function mapToCurve(Fp2 memory t) public view returns (bool, G2PointTmp memory result) {
+        Fp2 memory numerator;
+        Fp2 memory denominator;
+        Fp2 memory iso_3_z_t2;
+        (iso_3_z_t2, numerator, denominator) = mapToCurveGetFraction(t);
+        Fp2 memory v;
+        Fp2 memory u;
+        Fp2 memory sqrt_candidate;
+        Fp2 memory y;
+        bool success;
+        (success, u, v, y, sqrt_candidate) = mapToCurveGetDivisionParams(t, iso_3_z_t2, numerator, denominator);
+        bool success_2 = false;
         /* Fp2 memory y = sqrt_candidate; */
+        if(!success) {
+            Fp2[] memory etas = get_etas();
+            for(uint i = 0; i < etas.length; i++) {
+            /* eta_sqrt_candidate = eta * sqrt_candidate */
+                Fp2 memory eta_sqrt_candidate = lmul(sqrt_candidate, etas[i]);
+            /* temp1 = eta_sqrt_candidate ** 2 * v - u */
+                Fp2 memory eta_sqrt_candidate_sqr = lmul(eta_sqrt_candidate, eta_sqrt_candidate);
+                Fp2 memory temp1 = lsub(lmul(eta_sqrt_candidate_sqr, v), u);
+            /* if temp1 == FQ2.zero() and not success and not success_2: */
+            /*     y = eta_sqrt_candidate */
+            /*     success_2 = True */
+                if(leq(temp1, ZERO) && !success_2) {
+                    y = eta_sqrt_candidate;
+                    success_2 = true;
+                }
+            }
+        }
+        if(!success && !success_2) {
+            revert("Hash to curve - optimized swu failure");
+        }
 
-        result = G2PointTmp(v, u, sqrt_candidate);
+        if (!success) {
+            numerator = lmul(numerator, iso_3_z_t2);
+        }
+
+
+        // TODO: Check wtf is this
+        /* if t.sgn0 != y.sgn0: */
+        /*     y = -y */
+
+        y = lmul(y, denominator);
+        /* result = G2PointTmp(numerator, denominator, y); */
+
+        result = G2PointTmp(numerator, denominator, y);
         return (success, result);
+        /* result = G2PointTmp(v, u, sqrt_candidate); */
         /* result = G2PointTmp(v, u, u); */
         /* return result; */
     }
