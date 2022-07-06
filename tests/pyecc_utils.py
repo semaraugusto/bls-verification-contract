@@ -39,7 +39,7 @@ from py_ecc.bls.typing import G2Uncompressed
 def exponentiateBy(t: FQ2, exp) -> Tuple[FQ2, FQ2, FQ2]:
     return t**exp
 
-def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
+def optimized_swu_G2_partial(t: FQ2) -> Tuple[bool, Tuple[FQ2, FQ2, FQ2]]:
     t2 = t ** 2
     iso_3_z_t2 = ISO_3_Z * t2
     temp = iso_3_z_t2 + iso_3_z_t2 ** 2
@@ -53,8 +53,11 @@ def optimized_swu_G2_partial(t: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     v = denominator ** 3
     # u = N^3 + a * N * D^2 + b* D^3
     u = (numerator ** 3) + (ISO_3_A * numerator * (denominator ** 2)) + (ISO_3_B * v)
+    # Attempt y = sqrt(u / v)
+    (success, sqrt_candidate) = sqrt_division_FQ2(u, v)
+    y = sqrt_candidate
 
-    return (v, u, u)
+    return (success, (v, u, sqrt_candidate))
 
     # return (temp, t2, denominator)
 

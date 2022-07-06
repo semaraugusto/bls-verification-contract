@@ -216,9 +216,9 @@ contract Verifier  {
 
     function ldiv(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) { unchecked {
         revert("not implemented!");
-        FpLib.Fp memory a = FpLib.ldiv(x.a, y.a);
-        FpLib.Fp memory b = FpLib.ldiv(x.b, y.b);
-        return Fp2(a, b);
+        /* FpLib.Fp memory a = FpLib.ldiv(x.a, y.a); */
+        /* FpLib.Fp memory b = FpLib.ldiv(x.b, y.b); */
+        /* return Fp2(a, b); */
     }}
     function lsub(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) { unchecked {
         FpLib.Fp memory a = FpLib.lsub(x.a, y.a);
@@ -386,7 +386,23 @@ contract Verifier  {
     // Square Root Division
     // Return: uv^7 * (uv^15)^((p^2 - 9) / 16) * root of unity
     // If valid square root is found return true, else false
-    function sqrtDivision(Fp2 memory u, Fp2 memory v) public view returns (G2PointTmp memory result) {
+    function sqrtDivision(Fp2 memory u, Fp2 memory v) public view returns (bool, Fp2 memory) {
+
+        Fp2 memory v7 = fastExp(v, 7);
+        // uv^7
+        Fp2 memory temp1 = lmul(u, v7);
+
+        // uv^15
+        Fp2 memory temp2 = lmul(temp1, lmul(v7, v));
+
+        // gamma =  uv^7 * (uv^15)^((p^2 - 9) / 16)
+        /* Fp2 memory gamma = temp2; */
+        Fp2 memory gamma = bigFastExp(temp2, P_MINUS_9_DIV_16_r0, P_MINUS_9_DIV_16_r1, P_MINUS_9_DIV_16_r2);
+        gamma = lmul(gamma, temp1);
+
+        return checkRoots(gamma, u, v);
+    }
+    function sqrtDivisionTest(Fp2 memory u, Fp2 memory v) public view returns (G2PointTmp memory result) {
 
         Fp2 memory v7 = fastExp(v, 7);
         // uv^7
@@ -405,12 +421,10 @@ contract Verifier  {
 
     // Optimized SWU Map - FQ2 to G2': y^2 = x^3 + 240i * x + 1012 + 1012i
     // Found in Section 4 of https://eprint.iacr.org/2019/403
-    function mapToCurve(Fp2 memory t) public view returns (G2PointTmp memory result) {
-        Fp2 memory ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240));
-        Fp2 memory ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012));
-        Fp2 memory ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1)));
-
-
+    function mapToCurve(Fp2 memory t) public view returns (bool, G2PointTmp memory result) {
+        /* Fp2 memory ISO_3_A = Fp2(FpLib.Fp(0, 0), FpLib.Fp(0, 240)); */
+        /* Fp2 memory ISO_3_B = Fp2(FpLib.Fp(0, 1012), FpLib.Fp(0, 1012)); */
+        /* Fp2 memory ISO_3_Z = Fp2(FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 2)), FpLib.lsub(BASE_FIELD, FpLib.Fp(0, 1))); */
         Fp2 memory t2 = lmul(t, t);
         Fp2 memory iso_3_z_t2 = lmul(ISO_3_Z, t2);
         Fp2 memory temp = ladd(iso_3_z_t2, lmul(iso_3_z_t2, iso_3_z_t2));
@@ -431,9 +445,16 @@ contract Verifier  {
         temp = lmul(ISO_3_B, v);
         Fp2 memory numerator_sqr = lmul(numerator, numerator);
         Fp2 memory u = ladd(ladd(lmul(numerator, numerator_sqr), t2), temp);
+        bool success;
+        Fp2 memory sqrt_candidate;
+        (success, sqrt_candidate) = sqrtDivision(u, v);
 
-        result = G2PointTmp(v, u, u);
-        return result;
+        /* Fp2 memory y = sqrt_candidate; */
+
+        result = G2PointTmp(v, u, sqrt_candidate);
+        return (success, result);
+        /* result = G2PointTmp(v, u, u); */
+        /* return result; */
     }
 
     /* function signature_to_g2_points(bytes32 message) public view returns (G2Point memory, G2Point memory) { */
