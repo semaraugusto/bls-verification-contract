@@ -575,7 +575,7 @@ def test_ladd_G2_1(proxy_contract, signing_root):
     result, v_sqr_times_v2, v_cubed, w = addTest(first_g2_pyecc,second_g2_pyecc)
     first_g2_pyecc = tuple(first_g2_pyecc)
     # exp1 = proxy_contract.functions.addG2(first_g2, second_g2).call()
-    actual1 = proxy_contract.functions.addG2NoPrecompile(first_g2, second_g2).call()
+    actual1 = proxy_contract.functions.addG2(first_g2, second_g2).call()
     # exp = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in exp1)
     actual = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in actual1)
     print(f"modulus: {FIELD_MODULUS}")
@@ -890,7 +890,7 @@ def test_map_to_curve_matches_spec_0(w3, proxy_contract, signing_root):
     # first_group_element = normalize(
     #     clear_cofactor_G2(map_to_curve_G2(field_elements[0]))
     # )
-    (expected_suc, expected_numerator, expected_denominator, expected_y)  = optimized_swu_G2(field_elements[0])
+    (expected_suc, expected_numerator, expected_y, expected_denominator)  = optimized_swu_G2(field_elements[0])
 
     me = w3.eth.accounts[0]
     actual_suc, actual = proxy_contract.functions.mapToCurve(
@@ -908,8 +908,8 @@ def test_map_to_curve_matches_spec_0(w3, proxy_contract, signing_root):
     print(f"expected y: {expected_y}")
     assert actual_suc == expected_suc
     assert actual[0] == expected_numerator
-    assert actual[1] == expected_denominator
-    assert actual[2] == expected_y
+    assert actual[1] == expected_y
+    assert actual[2] == expected_denominator
 
 @pytest.mark.timeout(1500)
 # @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
@@ -919,7 +919,7 @@ def test_map_to_curve_matches_spec_1(w3, proxy_contract, signing_root):
         utils.convert_fp2_to_int(fp2_repr) for fp2_repr in field_elements_parts
     )
 
-    (expected_suc, expected_numerator, expected_denominator, expected_y)  = optimized_swu_G2(field_elements[1])
+    (expected_suc, expected_numerator, expected_y, expected_denominator)  = optimized_swu_G2(field_elements[1])
 
     me = w3.eth.accounts[0]
     actual_suc, actual = proxy_contract.functions.mapToCurve(field_elements_parts[1]).call({"from": me, "gas": '20000000'})
@@ -935,8 +935,8 @@ def test_map_to_curve_matches_spec_1(w3, proxy_contract, signing_root):
     print(f"expected y: {expected_y}")
     assert actual_suc == expected_suc
     assert actual[0] == expected_numerator
-    assert actual[1] == expected_denominator
-    assert actual[2] == expected_y
+    assert actual[1] == expected_y
+    assert actual[2] == expected_denominator
 
 @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_hash_g2_is_zero(proxy_contract, signing_root, dst):
@@ -948,54 +948,13 @@ def test_hash_g2_is_zero(proxy_contract, signing_root, dst):
 
     assert converted_result == spec_result
 
-@pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
+# @pytest.mark.skip(reason="no way of currently testing this due to removing precompiles")
 def test_hash_to_curve_matches_spec(proxy_contract, signing_root, dst):
     result = proxy_contract.functions.hashToCurve(signing_root).call()
     converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
 
     spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
 
-    assert converted_result == spec_result
-
-@pytest.mark.skip(reason="no way of currently testing this")
-def test_hash_to_curve_no_precompile_matches_spec(proxy_contract, signing_root, dst):
-    result = proxy_contract.functions.hashToCurveNoPrecompile(signing_root).call()
-    expected1 = proxy_contract.functions.hashToCurve(signing_root).call()
-    points = proxy_contract.functions.signature_to_g2_points(signing_root).call()
-    converted_expected = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in expected1)
-    converted_result = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in result)
-    spec_result = normalize(hash_to_G2(signing_root, dst, hashlib.sha256))
-    # converted_result = tuple(convert_fp2_to_int(fp2_repr) for fp2_repr in result)
-    # expected1 = tuple(utils.convert_fp2_to_int(fp2_repr) for fp2_repr in expected1)
-    first_g2 = points[0]
-    second_g2 = points[1]
-    print(f"expected: {converted_expected}")
-    print(f"actual: {spec_result}")
-    # print(f"first_point: {first_point}")
-    first_g2_a = first_g2[0]
-    first_g2_a_a = first_g2_a[0]
-    first_g2_a_b = first_g2_a[1]
-    first_g2_b = first_g2[1]
-    first_g2_b_a = first_g2_b[0]
-    first_g2_b_b = first_g2_b[1]
-    second_g2_a = second_g2[0]
-    second_g2_a_a = second_g2_a[0]
-    second_g2_a_b = second_g2_a[1]
-    second_g2_b = second_g2[1]
-    second_g2_b_a = second_g2_b[0]
-    second_g2_b_b = second_g2_b[1]
-    print(f"first_point_g2_a_a: {first_g2_a_a}")
-    print(f"first_point_g2_a_b: {first_g2_a_b}")
-    print(f"first_point_g2_b_a: {first_g2_b_a}")
-    print(f"first_point_g2_b_b: {first_g2_b_b}")
-
-    print(f"second_point_g2_a_a: {second_g2_a_a}")
-    print(f"second_point_g2_a_b: {second_g2_a_b}")
-    print(f"second_point_g2_b_a: {second_g2_b_a}")
-    print(f"second_point_g2_b_b: {second_g2_b_b}")
-
-    # print(f"second_point: {second_point}")
-    assert converted_expected == spec_result
     assert converted_result == spec_result
 
 @pytest.mark.skip(reason="no way of currently testing this")

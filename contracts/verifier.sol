@@ -227,6 +227,10 @@ contract Verifier  {
         return lmul(x, x);
     }
 
+    /* function invert(Fp2 memory numb, Fp2 memory modulo) public view returns (Fp2 memory) { unchecked { */
+    /*     if (leq(numb, ZERO) || leq(modulo, ZERO)) */
+    /**/
+    /* }} */
 
     function ldiv(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) { unchecked {
         revert("not implemented!");
@@ -269,7 +273,7 @@ contract Verifier  {
     /**/
     /* } */
 
-    function addG2NoPrecompile(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) {
+    function addG2(G2Point memory a, G2Point memory b) public view returns (G2PointTmp memory) {
         if(G2_isZeroNoPrecompile(a.X, a.Y)) { 
             G2PointTmp memory res = G2PointTmp(b.X, b.Y, Fp2(FpLib.Fp(0,0), FpLib.Fp(0,0)));
             return res;
@@ -312,6 +316,9 @@ contract Verifier  {
             V1 = lmul(V, A);
             V2 = lsub(lmul(U, lsub(V_sqr_times_v2, A)), lmul(V_cubed, U2));
             A = lmul(V_cubed, W);
+
+            // TODO: normalize
+            // (x / z, y / z)
             return G2PointTmp(V1, V2, A);
         }
     }
@@ -553,7 +560,11 @@ contract Verifier  {
         y = lmul(y, denominator);
         /* result = G2PointTmp(numerator, denominator, y); */
 
-        result = G2PointTmp(numerator, denominator, y);
+        result = G2PointTmp(numerator, y, denominator);
+        // normalize (x / z, y / z)
+        /* u = ldiv(numerator, denominator); */
+        /* v = ldiv(y, denominator); */
+
         return (success, result);
         /* result = G2PointTmp(v, u, sqrt_candidate); */
         /* result = G2PointTmp(v, u, u); */
@@ -590,6 +601,16 @@ contract Verifier  {
         );
         return G2Point(X, Y);
     }
+    /* function hashToCurve(bytes32 message) public view returns (G2PointTmp memory) { */
+    /*     Fp2[2] memory messageElementsInField = hashToField(message); */
+    /*     bool suc1; */
+    /*     bool suc2; */
+    /*     G2PointTmp memory firstPoint; */
+    /*     G2PointTmp memory secondPoint; */
+    /*     (suc1, firstPoint) = mapToCurve(messageElementsInField[0]); */
+    /*     (suc2, secondPoint) = mapToCurve(messageElementsInField[1]); */
+    /*     return addG2(firstPoint, secondPoint); */
+    /* } */
 
     // NOTE: function is exposed for testing...
     /* function blsSignatureIsValid( */

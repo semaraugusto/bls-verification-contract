@@ -64,7 +64,8 @@ def optimized_swu_G2_partial(t: FQ2) -> Tuple[bool, Tuple[FQ2, FQ2, FQ2]]:
     # u(x1) = Z^3 * t^6 * u(x0)
     u = (iso_3_z_t2) ** 3 * u
 
-    return (success, (v, u, sqrt_candidate))
+    return (success, (numerator, y, denominator))
+    # return (success, (v, u, sqrt_candidate))
 
     # return (temp, t2, denominator)
 
@@ -114,11 +115,13 @@ def optimized_swu_G2(t: FQ2) -> Tuple[bool, FQ2, FQ2, FQ2]:
         numerator = numerator * iso_3_z_t2
 
     if t.sgn0 != y.sgn0:
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         y = -y
 
     y = y * denominator
 
-    return (success, numerator, denominator, y)
+    return (success, numerator, y, denominator)
 
 def sqrt_division_FQ2_partial(u: FQ2, v: FQ2) -> Tuple[FQ2, FQ2, FQ2]:
     v7 = v ** 7
