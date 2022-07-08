@@ -30,6 +30,11 @@ contract FpLibTest  {
     function lmod(FpLib.Fp memory x, FpLib.Fp memory p) public view returns (FpLib.Fp memory) {
         return FpLib.lmod(x, p);
     }
+
+    function invert(FpLib.Fp memory x) public view returns (FpLib.Fp memory) {
+        return FpLib.invert(x);
+    }
+
     function get_base_field() public pure returns (FpLib.Fp memory) {
         return FpLib.get_base_field();
     }

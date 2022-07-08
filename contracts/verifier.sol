@@ -227,10 +227,10 @@ contract Verifier  {
         return lmul(x, x);
     }
 
-    /* function invert(Fp2 memory numb, Fp2 memory modulo) public view returns (Fp2 memory) { unchecked { */
-    /*     if (leq(numb, ZERO) || leq(modulo, ZERO)) */
-    /**/
-    /* }} */
+    function invert(Fp2 memory numb, Fp2 memory modulo) public view returns (Fp2 memory) { unchecked {
+        FpLib.Fp memory factor = FpLib.ladd(FpLib.lmul(numb.a, numb.a), FpLib.lmul(numb.b, numb.b));
+        return factor;
+    }}
 
     function ldiv(Fp2 memory x, Fp2 memory y) public view returns (Fp2 memory) { unchecked {
         revert("not implemented!");

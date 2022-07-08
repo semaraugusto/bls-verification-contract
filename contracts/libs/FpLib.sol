@@ -341,6 +341,32 @@ library FpLib  {
         return Math.bitLength(p.b);
         /* bitLength(p.b); */
     }}
+    function invert(Fp memory numb) internal view returns (Fp memory) { unchecked {
+        Fp memory ZERO = Fp(0, 0);
+        Fp memory ONE = Fp(0, 1);
+        Fp memory t = ZERO;
+        Fp memory newt = ONE;
+        Fp memory newr = numb;
+        Fp memory base_field = get_base_field();
+        Fp memory r = base_field;
+
+        Fp memory quotient = ldiv(r, newr);
+
+        while(!leq(newr, ZERO)) {
+            Fp memory temp = newt;
+            newt = lsub(t, lmul(quotient, temp));
+            t = temp;
+
+            temp = newr;
+            newr = lsub(r, lmul(quotient, temp));
+            r = temp;
+        }
+        if(gte(r, ONE)) {
+            revert("could not invert");
+        }
+
+        return t;
+    }}
 
     function lsub(Fp memory x, Fp memory y) internal view returns (Fp memory) { unchecked {
         uint r0;
